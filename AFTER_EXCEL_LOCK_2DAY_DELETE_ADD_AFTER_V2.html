@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Prepare Balance Sheet, Profit and Loss, notes and Excel workbooks from Tally JSON data."><title>Audit Report Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;margin-top:10px}.g3 .sub{grid-column:1/-1;font-size:12px;font-weight:700;color:#3730a3;border-bottom:1px solid #e2e8f0;padding:8px 0 4px;margin-top:6px}.g3 .wide{grid-column:1/-1}
+@media(max-width:800px){.g3{grid-template-columns:1fr}}
+.stp-off{display:none!important}
+.mapchips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.mapchips button{padding:7px 14px;border:1px solid #cbd5e1;border-radius:20px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;color:#334155}.mapchips button b{background:#e2e8f0;border-radius:10px;padding:1px 8px;margin-left:4px;font-size:11px}
+.mapchips button.on{background:#3730a3;color:#fff;border-color:#3730a3}.mapchips button.on b{background:#fff;color:#3730a3}
+.mapbar{position:sticky;top:58px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;padding:8px 0;border-bottom:1px solid #e2e8f0}
+.mapbar input[type=text]{flex:1;min-width:180px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px}.mapbar select{padding:7px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;max-width:200px}
+.selcnt{font-size:12px;font-weight:700;color:#3730a3;min-width:78px}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.quick button{padding:5px 10px;border:1px solid #c7d2fe;background:#eef2ff;color:#3730a3;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer}.quick button:hover{background:#3730a3;color:#fff}
+.mapwrap{max-height:62vh;overflow:auto;border:1px solid #e2e8f0;border-radius:8px}.mapwrap .lt{margin:0}.mapwrap .lt thead th{position:sticky;top:0;z-index:2}
+#mappingBody tr{cursor:pointer}#mappingBody tr.sel{background:#e0e7ff}#mappingBody tr[data-src=sign],#mappingBody tr[data-src=rs]{background:#fffbeb}#mappingBody tr.sel[data-src=sign],#mappingBody tr.sel[data-src=rs]{background:#e0e7ff}
+.impbox{background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 12px;margin:8px 0;font-size:12px}.impbox .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.impbox select{padding:7px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;min-width:240px}.impbox details{margin-top:6px}.impbox .nf{max-height:120px;overflow:auto;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;margin-top:4px}
+.mapopt{margin-top:12px;font-size:12px}.mapopt summary{cursor:pointer;font-weight:600;color:#475569;margin-bottom:6px}
+.stepnav{position:sticky;top:0;z-index:20;display:flex;gap:6px;overflow-x:auto;background:#f0f4f8;padding:8px 0 10px;margin-bottom:6px}
+.stepnav button{flex:1;min-width:120px;display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#334155;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.stepnav button b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#e2e8f0;font-size:11px}
+.stepnav button.on{background:#3730a3;color:#fff;border-color:#3730a3}.stepnav button.on b{background:#fff;color:#3730a3}
+.stepnav button:disabled{opacity:.45;cursor:not-allowed}
+.stepfoot{display:flex;justify-content:space-between;gap:10px;margin:4px 0 24px}
+.stepfoot .btn{padding:10px 22px;font-size:14px}
+body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;padding:20px;font-size:14px}
+.container{max-width:1180px;margin:0 auto}
+header{background:linear-gradient(135deg,#1e3a8a,#3730a3);color:#fff;padding:20px;border-radius:12px;margin-bottom:16px}
+header h1{font-size:20px}header p{opacity:.9;font-size:12px;margin-top:4px}
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card h2{font-size:15px;color:#1e3a8a;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}
+.fg{margin-bottom:10px}.fg label{display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px}
+.fg input,.fg select,.fg textarea,textarea{width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit}
+.btn{padding:9px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin:3px 3px 3px 0;color:#fff}
+.bp{background:#3730a3}.bs{background:#16a34a}.bw{background:#d97706}.bg{background:#64748b}.bd{background:#dc2626;padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.al{padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:12px}
+.ai{background:#dbeafe;color:#1e40af}.as{background:#dcfce7;color:#166534}.ae{background:#fee2e2;color:#991b1b}.aw{background:#fef3c7;color:#92400e}
+.uz{border:2px dashed #94a3b8;border-radius:10px;padding:16px;text-align:center;cursor:pointer;min-height:110px;display:flex;flex-direction:column;justify-content:center}
+.uz input{display:none}.uz.a{border-color:#16a34a;background:#f0fdf4}.uz.b{border-color:#2563eb;background:#eff6ff}.uz.c{border-color:#d97706;background:#fffbeb}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:800px){.upload-grid,.g2,.ec{grid-template-columns:1fr!important}}
+.ec{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ecd{padding:14px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;text-align:center;font-weight:600}
+.ecd:hover{border-color:#3730a3;background:#eef2ff}.ecd.selected{border-color:#3730a3;background:#3730a3;color:#fff}
+table.lt,table.it{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px}
+.lt th,.it th{background:#f1f5f9;padding:6px;text-align:left;border:1px solid #cbd5e1;font-size:11px}
+.lt td,.it td{padding:4px 6px;border:1px solid #e2e8f0}
+.lt select{width:100%;padding:3px;font-size:11px}.it input{width:100%;padding:4px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px}
+.num{text-align:right;font-family:Consolas,monospace}.dr{color:#dc2626}.cr{color:#16a34a}
+.st,.ti{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+.stb,.tib{padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:#64748b}
+.stb.active,.tib.active{background:#3730a3;color:#fff;border-color:#3730a3}
+.rp{background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:30px;font-family:'Times New Roman',serif;font-size:13px;line-height:1.6;max-height:700px;overflow-y:auto}
+.rp h3{text-align:center;margin-bottom:14px;text-decoration:underline;font-size:15px}.rp h4{margin:16px 0 8px;color:#1e3a8a;font-size:13px}
+.total-row{font-weight:700;background:#f1f5f9}
+.hidden{display:none!important}
+.status-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-top:6px;background:#f1f5f9;color:#64748b}.status-badge.ok{background:#dcfce7;color:#166534}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.tools input[type=text],.tools select{padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px}
+.tools input[type=text]{flex:1;min-width:200px}
+.cnt{font-size:11px;color:#64748b;margin-bottom:6px}
+.pym{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pym label{padding:10px 12px;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px}
+.pym label:has(input:checked){border-color:#3730a3;background:#eef2ff}
+.pym input{margin-right:8px}
+table.mt{width:100%;border-collapse:collapse;font-size:12px}
+.mt th{background:#f1f5f9;padding:6px;text-align:left;border:1px solid #cbd5e1;font-size:11px}
+.mt td{padding:3px 6px;border:1px solid #e2e8f0}.mt tr.grp td{background:#eef2ff}
+.mt input{width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;text-align:right;font-size:12px}
+.ledtools{margin-left:6px;white-space:nowrap}.ledbtn{border:1px solid #cbd5e1;background:#fff;border-radius:5px;padding:0 6px;font-size:12px;cursor:pointer;line-height:18px}.ledbtn:hover{background:#eef2ff}.hgrp{margin:6px 0}.hchip{display:inline-flex;align-items:center;gap:4px;border:1px solid #c7d2fe;background:#fff;border-radius:16px;padding:3px 6px 3px 10px;margin:3px 4px 3px 0;font-size:12px}</style></head><body><div class="container">
+<header><h1>Audit Report Generator</h1><p>Import Tally JSON (Trial Balance, Balance Sheet, P&amp;L) → Automated ledger mapping → Financial statements, notes and formula-linked Excel workbook</p></header>
+<nav id="stepNav" class="stepnav"></nav>
+
+<div class="card" id="entityCard"><h2>Entity Type</h2><div class="ec">
+<div class="ecd" data-entity="company">Company</div><div class="ecd" data-entity="partnership">Partnership Firm</div><div class="ecd" data-entity="proprietorship">Proprietorship</div></div>
+<input type="hidden" id="entityType" value="company"></div>
+
+<div class="card" id="clientCard"><h2>Client Details &amp; Tally Data</h2>
+<div class="upload-grid">
+<div class="uz a" data-in="tbInput"><input type="file" id="tbInput" accept=".json"><b>Trial Balance JSON</b><small>Required</small><div id="fileNameTB" style="font-size:11px"></div><div id="statusTB" class="status-badge">Pending</div></div>
+<div class="uz b" data-in="bsInput"><input type="file" id="bsInput" accept=".json"><b>Balance Sheet JSON</b><small>Used for auto-mapping</small><div id="fileNameBS" style="font-size:11px"></div><div id="statusBS" class="status-badge">Pending</div></div>
+<div class="uz c" data-in="plInput"><input type="file" id="plInput" accept=".json"><b>P&amp;L JSON</b><small>Used for auto-mapping</small><div id="fileNamePL" style="font-size:11px"></div><div id="statusPL" class="status-badge">Pending</div></div>
+</div><div id="uploadStatus" style="margin-top:12px"></div>
+<div class="g3">
+<div class="sub">Client</div>
+<div class="fg"><label>Client Name</label><input id="clientName"></div><div class="fg"><label>Current FY</label><input id="fy" placeholder="2025-26"></div><div class="fg"><label>Previous FY</label><input id="fyPrev" placeholder="2024-25"></div>
+<div class="fg"><label>PAN</label><input id="pan"></div><div class="fg"><label>GSTIN</label><input id="gstin"></div><div class="fg"><label>CIN</label><input id="cin"></div>
+<div class="fg wide"><label>Address</label><input id="address"></div>
+<div class="sub">Auditor &amp; signing details</div>
+<div class="fg"><label>Auditor Firm</label><input id="auditorFirm"></div><div class="fg"><label>FRN</label><input id="frn"></div><div class="fg"><label>Auditor Name</label><input id="auditorName"></div><div class="fg"><label>Signing as</label><select id="auditorDesig"><option value="Partner">Partner</option><option value="Proprietor">Proprietor</option></select></div>
+<div class="fg"><label>Membership No.</label><input id="membershipNo"></div><div class="fg"><label>UDIN</label><input id="udin"></div><div class="fg"><label>Place</label><input id="place"></div>
+<div class="fg"><label>Date</label><input type="date" id="reportDate"></div>
+<div class="fg"><label>Amounts shown in</label><select id="unit"><option value="1">Rupees (₹)</option><option value="100">Hundreds</option><option value="1000">Thousands</option></select></div></div></div>
+
+<div class="card" id="sigCard"><h2 id="sigTitle">Directors / Signatories</h2>
+<div class="al ai" id="sigHint"></div>
+<table class="it"><thead><tr><th id="sigNameH">Name</th><th id="sigDinH" style="width:22%">DIN</th><th style="width:24%">Place</th><th id="sigPsrH" style="width:16%;display:none">PSR % (Profit Sharing Ratio)</th><th style="width:50px"></th></tr></thead><tbody id="sigBody"></tbody></table>
+<button class="btn bp" type="button" id="sigAdd">+ Add</button><div id="sigPsrTot" class="al ai" style="display:none;margin-top:10px"></div></div>
+
+<div class="card" id="pyCard"><h2>Previous Year Comparatives</h2>
+<input type="hidden" id="pyMode" value="open">
+<label style="display:block;padding:10px 12px;border:2px solid #d97706;background:#fffbeb;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:10px"><input type="checkbox" id="noTally" style="margin-right:8px">Tally data is not available — enter both Current Year and Previous Year manually (head-wise)</label>
+<div id="pyAutoMsg"></div>
+<div class="pym" id="pyRadios">
+<label><input type="radio" name="pyModeR" value="open" checked>Use opening balances for Balance Sheet; enter previous year P&amp;L manually (or upload PY P&amp;L JSON)</label>
+<label><input type="radio" name="pyModeR" value="manual">Enter previous year manually (head-wise / ledger-wise comparatives)</label>
+</div>
+<div id="pyOpen" class="al ai">Balance Sheet comparatives are derived from the opening Dr/Cr balances of the current Trial Balance. Enter only the previous year Profit &amp; Loss figures below. If the Trial Balance has no opening balances, full manual entry is selected automatically.</div>
+<div id="pyOpenUp" style="margin:8px 0"><div class="uz c" data-in="pyOpenPlInput" style="min-height:80px"><input type="file" id="pyOpenPlInput" accept=".json"><b>Upload PY P&amp;L JSON (optional)</b><small>Fills the previous year P&amp;L figures below, ledger-wise. You can still edit them manually.</small><div id="fileNamePYOPL" style="font-size:11px"></div><div id="statusPYOPL" class="status-badge">Pending</div></div></div>
+<div id="pyUpload" class="hidden">
+<div class="upload-grid">
+<div class="uz a" data-in="pyTbInput"><input type="file" id="pyTbInput" accept=".json"><b>PY Trial Balance JSON</b><small>Required in this mode</small><div id="fileNamePYTB" style="font-size:11px"></div><div id="statusPYTB" class="status-badge">Pending</div></div>
+<div class="uz b" data-in="pyBsInput"><input type="file" id="pyBsInput" accept=".json"><b>PY Balance Sheet JSON</b><small>Optional</small><div id="fileNamePYBS" style="font-size:11px"></div><div id="statusPYBS" class="status-badge">Pending</div></div>
+<div class="uz c" data-in="pyPlInput"><input type="file" id="pyPlInput" accept=".json"><b>PY P&amp;L JSON</b><small>Optional</small><div id="fileNamePYPL" style="font-size:11px"></div><div id="statusPYPL" class="status-badge">Pending</div></div>
+</div>
+<div class="al aw" style="margin-top:10px">Previous year ledgers are first mapped using the current year mapping (matched by ledger name).</div>
+<div class="cnt" id="pyMapInfo"></div>
+<div class="tools"><input type="text" id="pfq" placeholder="Search PY ledger / head / amount..."><select id="pff"><option value="all">All</option><option value="unassigned">Unassigned</option><option value="assigned">Assigned</option><option value="sign">Mapped by Dr/Cr sign (review)</option></select><select id="pBulkHead"></select><button class="btn bg" id="pBulkApply" type="button">Assign to visible rows</button><button class="btn bg" id="pySync" type="button">Sync from CY mapping</button></div>
+<div class="cnt" id="pyMappingBodyCnt"></div>
+<div style="max-height:380px;overflow-y:auto"><table class="lt"><thead><tr><th style="width:34%">PY Ledger</th><th>PY Cl Dr</th><th>PY Cl Cr</th><th style="width:36%">Assign To</th></tr></thead><tbody id="pyMappingBody"></tbody></table></div>
+</div>
+<div id="pyManual" class="hidden" style="margin-top:10px">
+<div class="al ai" id="pyManualHint"></div>
+<div class="tools"><input type="text" id="mq" placeholder="Search head..."><button class="btn bg" id="mRefresh" type="button">Reload CY ledgers</button></div>
+<div style="max-height:420px;overflow-y:auto"><table class="mt"><thead><tr><th style="width:44%">Head / Ledger</th><th style="width:8%">Side</th><th class="cyc hidden">CY Amount (₹)</th><th>PY Amount (₹)</th></tr></thead><tbody id="manBody"></tbody></table></div>
+</div>
+<div id="pyCheck" style="margin-top:10px"></div></div>
+
+<div class="card hidden" id="mappingCard"><h2>Ledger Mapping</h2>
+<div class="al as" id="autoMatchInfo"></div><div id="linkReport"></div><div id="mappingWarning"></div>
+<div class="mapchips" id="mapChips"><button type="button" data-f="review">Needs review <b id="cRev">0</b></button><button type="button" data-f="unassigned">Unassigned <b id="cUn">0</b></button><button type="button" data-f="all">All ledgers <b id="cAll">0</b></button></div>
+<div class="mapbar"><input type="text" id="fq" placeholder="Search ledger / head / amount..."><select id="ff" class="hidden"><option value="review">Needs review</option><option value="all">All ledgers</option><option value="unassigned">Unassigned</option><option value="assigned">Assigned</option><option value="sign">Mapped by Dr/Cr sign (review)</option></select>
+<span class="selcnt" id="selCnt">0 selected</span><select id="bulkHead"></select><button class="btn bp" id="bulkApply" type="button">Assign</button><button class="btn bs" id="acceptShown" type="button" title="Mark the ledgers shown below as checked, keeping their current head">&#10003; Accept shown</button></div>
+<div class="impbox"><div class="row"><b style="color:#3730a3">Select ledgers from a JSON list:</b><input type="file" id="impInput" accept=".json,application/json" class="hidden"><button class="btn bp" id="impBtn" type="button">&#128193; Upload JSON (e.g. Sundry Creditors list)</button><span id="impFile" style="color:#475569"></span></div>
+<div id="impPanel" class="hidden" style="margin-top:8px"><div id="impMsg" style="font-weight:600;margin-bottom:6px"></div><div class="row"><span>Which group / head should these ledgers go to?</span><select id="impHead"></select><button class="btn bs" id="impApply" type="button">Assign selected</button><button class="btn bg" id="impClear" type="button">Untick all</button></div><details id="impNFw"><summary id="impNFs" style="cursor:pointer;color:#b45309;font-weight:600"></summary><div class="nf" id="impNF"></div></details></div></div>
+<div class="quick" id="quickHeads"></div>
+<details class="impbox" id="headBox"><summary style="cursor:pointer;font-weight:600;color:#3730a3">Manage heads &mdash; rename / delete</summary><div id="headMgr" style="margin-top:8px"></div></details>
+<div class="cnt" id="mappingBodyCnt"></div>
+<div class="mapwrap"><table class="lt"><thead><tr><th style="width:30px"><input type="checkbox" id="selAll" title="Select all shown"></th><th style="width:34%">Ledger</th><th>Opening</th><th>Closing</th><th style="width:34%">Assign To</th></tr></thead><tbody id="mappingBody"></tbody></table></div>
+<details class="mapopt"><summary>More options</summary>
+<label style="display:block;margin:6px 0;font-size:12px;font-weight:600"><input type="checkbox" id="netOff" style="margin-right:6px">Net off debit/credit balances within Sundry Debtors / Creditors as per Tally (unticked = gross presentation as per Schedule III)</label>
+<button class="btn bg" id="btnAutoAssign" type="button">Re-run Auto-Mapping</button><button class="btn bg" id="btnClearAll" type="button">Clear All Mappings</button></details></div>
+
+<div class="card hidden" id="schedulesCard"><h2>Manual Schedules</h2>
+<div class="al ai">Closing stock and current year profit are imported automatically from the Tally Balance Sheet and P&amp;L. Enter here only the details that are not available in the JSON files.</div>
+<div class="st" id="scheduleTabs"></div><div id="scheduleContent"></div></div>
+
+<div class="card hidden" id="generateCard"><h2>Generate Report</h2>
+<label style="display:block;margin:0 0 10px;padding:8px 12px;border:1px solid #c7d2fe;background:#eef2ff;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer"><input type="checkbox" id="incAudRep" style="margin-right:8px">Also generate Independent Auditor's Report <span style="font-weight:400;color:#475569">(optional — SA 700 format, printed before the Balance Sheet)</span></label>
+<div id="audOpts" class="hidden" style="margin:0 0 12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc">
+<div style="font-size:12px;color:#475569;margin-bottom:8px">Already taken from the setup section: client name, entity type, financial year, auditor firm, FRN, partner name, membership no., UDIN, place and date. Figures (profit/loss, capital, reserves, borrowings, revenue) are taken from the generated report. Only the items below are asked.</div>
+<div class="g3">
+<div class="fg"><label>Entity type</label><select id="audCoType"><optgroup label="Company"><option value="private">Private company</option><option value="public">Public company (unlisted)</option><option value="listed">Listed company</option></optgroup><optgroup label="Non-company"><option value="partnership">Partnership Firm (Partners)</option><option value="proprietorship">Proprietorship (Proprietor)</option></optgroup></select></div>
+<div class="fg co-only"><label>CARO 2020 (companies only)</label><select id="audCaro"><option value="auto">Auto (from figures)</option><option value="yes">Applicable – Annexure</option><option value="no">Not applicable</option></select></div>
+<div class="fg co-only"><label>Internal financial controls – 143(3)(i) (companies only)</label><select id="audIfc"><option value="auto">Auto (from figures)</option><option value="yes">Required – Annexure</option><option value="no">Exempt</option></select></div>
+<div class="fg co-only"><label>Dividend during the year (companies only)</label><select id="audDiv"><option value="none">None declared / paid</option><option value="ok">Declared / paid – complies with s.123</option></select></div>
+<div class="fg"><label>Cash Flow Statement prepared?</label><select id="audCfs"><option value="no">No</option><option value="yes">Yes</option></select></div>
+<div class="fg wide"><label>Emphasis of Matter paragraph (optional)</label><textarea id="audEom" rows="2" style="width:100%"></textarea></div>
+<div class="fg wide co-only"><label>Audit trail (Rule 11(g)) paragraph — leave blank for standard wording (companies only)</label><textarea id="audTrail" rows="2" style="width:100%"></textarea></div>
+</div></div>
+<button class="btn bp" id="btnGenerate">Generate Report</button>
+<button class="btn bs" id="btnPdf" disabled>Export PDF</button><button class="btn bw" id="btnExcel" disabled>Export Excel</button><span style="display:none;font-size:12px;color:#475569;margin:0 6px" title="The exported Excel stops working (all cells blank, locked) after this many days. Enter 0 for no expiry.">Excel valid for <input type="number" id="xlDays" value="2" min="0" max="365" style="width:56px;padding:5px;border:1px solid #cbd5e1;border-radius:6px"> days</span><button class="btn bg" id="btnPrint" disabled>Print</button>
+<div id="genStatus" style="margin-top:10px"></div></div>
+
+<div class="card hidden" id="previewCard"><h2>Preview</h2>
+<div class="ti"><div class="tib" data-pane="paneAud" id="tabAud" style="display:none">Auditor's Report</div><div class="tib active" data-pane="paneBs">Balance Sheet</div><div class="tib" data-pane="panePl">P&amp;L</div><div class="tib" data-pane="paneSchedules">Schedules</div><div class="tib" data-pane="paneNotes">Notes</div><div class="tib" data-pane="paneAll">Full Report (all sections)</div></div>
+<div id="paneAll" class="rp hidden paper"></div><div id="paneAud" class="rp hidden paper"></div><div id="paneBs" class="rp paper"></div><div id="panePl" class="rp hidden paper"></div><div id="paneSchedules" class="rp hidden paper"></div><div id="paneNotes" class="rp hidden paper"></div></div>
+<footer style="text-align:center;font-size:11px;color:#64748b;padding:8px 0 16px">All data is processed locally in your browser and is not uploaded to any server. Generated statements are based on imported Tally data and user inputs and must be reviewed by the auditor before issue.</footer>
+</div>
+<script>
+const $=id=>document.getElementById(id), g=id=>$(id).value, r2=n=>Math.round(n*100)/100, norm=s=>(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+let UNIT=1;const unitTxt=u=>u===100?' in Hundreds':u===1000?' in Thousands':'';
+const fmt=n=>{if(UNIT>1)n=Math.round(n/UNIT);if(!n)return'-';const d=UNIT>1?0:2,t=Math.abs(n).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});return n<0?'('+t+')':t;};
+const HEADS={bs:['Share Capital','Reserves & Surplus','Long Term Borrowings','Secured Loans','Unsecured Loans','Deferred Tax Liabilities','Other Long Term Liabilities','Long-term Provisions','Short Term Borrowings','Trade Payables (MSME)','Trade Payables (Others)','Other Current Liabilities','Short-term Provisions','Property, Plant & Equipment','Intangible Assets','Capital Work-In-Progress','Non-Current Investments','Deferred Tax Assets','Long Term Loans & Advances','Other Non-Current Assets','Current Investments','Inventories','Trade Receivables','Cash and Cash Equivalents','Short Term Loans & Advances','Other Current Assets'],
+pl:['Revenue from Operations','Other Income','Cost of Materials Consumed','Purchases of Stock-in-Trade','Opening Stock','Less: Closing Stock','Direct Expenses','Freight & Carriage','Power & Fuel','Employee Benefits Expense','Directors / Partners Remuneration','Finance Costs','Depreciation & Amortization','Rent','Repairs & Maintenance','Rates & Taxes','Insurance','Travelling & Conveyance','Printing & Stationery','Communication Expenses','Professional & Legal Fees','Payment to Auditors','Selling & Distribution Expenses','Advertisement & Business Promotion','Commission & Brokerage','Bank Charges','Bad Debts & Provisions','Other Expenses']};
+const LIAB=HEADS.bs.slice(0,13), ASSET=HEADS.bs.slice(13), PLH=new Set(HEADS.pl);
+const HNAME={},HGONE=new Set(),visH=h=>!HGONE.has(h);
+const LEDTOOLS=' <span class="ledtools"><button type="button" class="ledbtn" data-lact="ren" title="Rename ledger">&#9998;</button><button type="button" class="ledbtn" data-lact="del" title="Delete ledger">&#128465;</button></span>';
+let parsedTB=[],S={},BSX=[],PLX=[],PLNET=null,PLCS=0,BSTOT=0,LINK={res:{},src:{}},FORCED={},REPORT=null,
+ PYTB=[],PYBSX=[],PYPLX=[],PYPLNET=null,PYPLCS=0,PYTBX=[],PYLINK={res:{},src:{}},PYFORCED={},MAN={};
+
+async function readJSON(file){const buf=await file.arrayBuffer(),u=new Uint8Array(buf);let enc='utf-8';
+ if(u[0]===0xFF&&u[1]===0xFE)enc='utf-16le';else if(u[0]===0xFE&&u[1]===0xFF)enc='utf-16be';else if(u[0]&&u[1]===0)enc='utf-16le';
+ return JSON.parse(new TextDecoder(enc).decode(buf).replace(/^\uFEFF/,''));}
+const nm=x=>(x?.bsname?.dspaccname?.dspdispname||x?.dspaccname?.dspdispname||'').trim();
+const amt=a=>{const o=(a||[])[0]||{};const v=o.bssubamt??o.bsmainamt??o.plsubamt;return v==null?0:Math.abs(parseFloat(v));};
+function parseTBInto(json){const out=[];arr(json?.dspaccbody?.dspaccline).forEach(l=>{const name=String(l?.dspaccname?.dspdispname||'').trim();const i=arr(l?.dspaccinfo)[0];if(!name||!i)return;
+ const G=(k,s)=>Math.abs(parseFloat(i?.[k]?.[s]||0));const r={name,opDr:G('dspopdramt','dspopdramta'),opCr:G('dspopcramt','dspopcramta'),clDr:G('dspcldramt','dspcldramta'),clCr:G('dspclcramt','dspclcramta')};
+ if(r.opDr||r.opCr||r.clDr||r.clCr)out.push(r);});return out;}
+function parseTB(json){parsedTB=parseTBInto(json);}
+const arr=x=>x==null?[]:Array.isArray(x)?x:[x];
+function bsEntries(json){const out=[],info=json?.bsbody?.bsinfo||{};let totA=0;
+ /* every ledger/group at any depth is captured; a node with children is exploded, otherwise it is itself a line */
+ const walk=(it,parent,side,top)=>{const n=nm(it),subs=arr(it?.bsgrpexplosion?.bsdetail);
+  if(!subs.length){out.push({name:n,parent:parent,side,amount:amt(it.bsamt)});return;}
+  subs.forEach(sb=>walk(sb,n,side,top));};
+ [['bssources','L'],['bsapp','A']].forEach(([k,side])=>arr(info[k]?.bsdetail).forEach(it=>{if(side==='A')totA+=amt(it.bsamt);walk(it,'',side,nm(it));}));
+ /* any other bs* section Tally may add is also read (assets if the key hints so, otherwise liabilities) */
+ Object.keys(info).filter(k=>!/^bs(sources|app)$/.test(k)&&info[k]&&typeof info[k]==='object').forEach(k=>{const side=/app|asset/i.test(k)?'A':'L';arr(info[k]?.bsdetail).forEach(it=>{if(side==='A')totA+=amt(it.bsamt);walk(it,'',side,nm(it));});});
+ return{entries:out,totA:r2(totA)};}
+function classifyBS(e){const n=e.name.toLowerCase(),L=e.side==='L';
+ if(/profit\s*&\s*loss/.test(n))return'#PL';if(/closing stock|stock.in.hand|inventor/.test(n))return'#CS';if(/sundry (creditor|debtor)/.test(n))return'#PARTY';
+ if(/share\s*ca\w*tal|equity|^capital/.test(n))return'Share Capital';if(/reserve|surplus/.test(n))return'Reserves & Surplus';
+ if(/overdraft|bank occ|cash credit/.test(n))return'Short Term Borrowings';if(/unsecured/.test(n))return L?'Unsecured Loans':'Short Term Loans & Advances';if(/secured/.test(n))return L?'Secured Loans':'Short Term Loans & Advances';
+ if(/bank|cash/.test(n))return L?'Short Term Borrowings':'Cash and Cash Equivalents';
+ if(/provision/.test(n))return /long.?term|non.?current/.test(n)?'Long-term Provisions':'Short-term Provisions';if(/advance|deposit/.test(n))return L?'Other Current Liabilities':'Short Term Loans & Advances';
+ if(/duties|tax|gst|tds|tcs/.test(n))return L?'Other Current Liabilities':'Short Term Loans & Advances';if(/suspen/.test(n))return L?'Other Current Liabilities':'Other Current Assets';
+ if(/investment/.test(n))return'Non-Current Investments';
+ if(/capital work|\bcwip\b/.test(n))return'Capital Work-In-Progress';if(/goodwill|software|patent|trade.?mark|copyright|licen[cs]e|intangible|website|know.?how/.test(n))return'Intangible Assets';
+ if(/fixed asset|plant|machiner|furniture|fixture|building|\bland\b|vehicle|computer|equipment/.test(n))return'Property, Plant & Equipment';
+ if(/loan|borrow/.test(n))return L?'Long Term Borrowings':'Short Term Loans & Advances';
+ if(e.parent&&!e._p)return classifyBS({...e,name:e.parent,parent:'',_p:1});return L?'Other Current Liabilities':'Other Current Assets';}
+function plExp(n){n=n.toLowerCase();
+ if(/bad.?debt|doubtful|irrecoverable|provision for (bad|doubt)/.test(n))return'Bad Debts & Provisions';
+ if(/depr|amorti|writ(e|ten).?off/.test(n))return'Depreciation & Amortization';
+ if(/bank\s*(charge|chg|commission)/.test(n))return'Bank Charges';
+ if(/interest|finance/.test(n))return'Finance Costs';
+ if(/(partner|director|proprietor).{0,20}(remuneration|salary)|remuneration to|managing director/.test(n))return'Directors / Partners Remuneration';
+ if(/salary|wage|staff|bonus|\bpf\b|\besi\b|labour|gratuity/.test(n))return'Employee Benefits Expense';
+ if(/freight|carriage|cartage|loading|unloading/.test(n))return/outward/.test(n)?'Selling & Distribution Expenses':'Freight & Carriage';
+ if(/\bpower\b|electric|\bfuel\b|\bcoal\b/.test(n))return'Power & Fuel';
+ if(/\brent\b/.test(n))return'Rent';
+ if(/repair|maintenance|\bamc\b/.test(n))return'Repairs & Maintenance';
+ if(/rates?\s*(&|and)\s*tax|profession(al)?\s*tax|\broc\b/.test(n))return'Rates & Taxes';
+ if(/insurance/.test(n))return'Insurance';
+ if(/travel|conveyance|\btour|\btaxi\b|\bcab\b/.test(n))return'Travelling & Conveyance';
+ if(/printing|stationery/.test(n))return'Printing & Stationery';
+ if(/telephone|mobile|internet|postage|courier|communication|\bphone\b/.test(n))return'Communication Expenses';
+ if(/audit\s*fee|auditor|statutory audit|tax audit/.test(n))return'Payment to Auditors';
+ if(/professional|legal|consultan|retainer|accounting charge/.test(n))return'Professional & Legal Fees';
+ if(/advertis|business promotion|marketing|sales promotion|publicity/.test(n))return'Advertisement & Business Promotion';
+ if(/commission|brokerage/.test(n))return'Commission & Brokerage';
+ if(/selling|distribution|discount allowed|packing|packaging/.test(n))return'Selling & Distribution Expenses';
+ if(/direct exp|manufacturing exp|factory exp|job work/.test(n))return'Direct Expenses';
+ return'Other Expenses';}
+function plEntries(json){const p=json?.plbody||{},out=[];let net=0,cs=0;
+ const SKIP=/^(total|gross\s*(profit|loss)|net\s*(profit|loss)|profit\s*(&|and)?\s*loss|nett?\s*(profit|loss)|balance\s*c\/?[fd]|to\s*\w+\s*a\/c)/i;
+ /* push every leaf ledger under a group (any depth). head may be a string or a function(name,signedAmount) */
+ const leaf=(it,head,signed)=>{const n=nm(it),subs=arr(it?.bsgrpexplosion?.bsdetail);
+  const mainRaw=parseFloat((it?.plamt||it?.bsamt||[])[0]?.bsmainamt??(it?.plamt||it?.bsamt||[])[0]?.plsubamt??(it?.bsamt||[])[0]?.bssubamt??0)||0;
+  if(!subs.length){if(!n||SKIP.test(n))return;const h=typeof head==='function'?head(n,mainRaw):head;if(h)out.push({name:n,head:h,amount:Math.abs(mainRaw)});return;}
+  subs.forEach(sb=>leaf(sb,head,signed));};
+ const grp=(blk,head)=>arr(blk?.pldetail).forEach(it=>{net+=parseFloat(it?.plamt?.[0]?.bsmainamt||0);leaf(it,head);});
+ grp(p.pltradingsales,'Revenue from Operations');grp(p.plincomestmt,'Other Income');grp(p.plexpensestmt,plExp);
+ arr(p.pltradingcost?.pldetail).forEach(it=>{net+=parseFloat(it?.plamt?.[0]?.bsmainamt||0);const c=it.plcostofsales||{},G=k=>Math.abs(parseFloat(c[k]?.plamt?.[0]?.plsubamt||0));
+  if(c.plopstock)out.push({name:nm(c.plopstock),head:'Opening Stock',amount:G('plopstock')});
+  if(c.plpurchase)out.push({name:nm(c.plpurchase),head:'Purchases of Stock-in-Trade',amount:G('plpurchase')});cs=G('plclstock');
+  /* Direct Expenses / Direct Incomes and any other cost-of-sales group Tally adds */
+  Object.keys(c).filter(k=>!/^pl(opstock|purchase|clstock)$/.test(k)).forEach(k=>arr(c[k]).forEach(g2=>{if(!g2||typeof g2!=='object')return;
+   const gm=parseFloat(g2?.plamt?.[0]?.plsubamt??g2?.plamt?.[0]?.bsmainamt??0)||0,isInc=/inc/i.test(k)||(gm>0&&!/exp/i.test(k));
+   leaf(g2,isInc?'Revenue from Operations':plExp);}));});
+ /* any further P&L section (e.g. extra income / expense blocks) is read by sign: credit = income, debit = expense */
+ Object.keys(p).filter(k=>!/^pl(tradingsales|tradingcost|incomestmt|expensestmt)$/.test(k)&&p[k]&&typeof p[k]==='object'&&p[k].pldetail).forEach(k=>arr(p[k].pldetail).forEach(it=>leaf(it,(n,v)=>v>0?'Other Income':plExp(n))));
+ return{entries:out,net:r2(net),cs};}
+
+/* Flexible P&L reader: standard Tally plbody first, otherwise scans any JSON layout for income/expense ledgers */
+function plEntriesAny(json){
+ const std=plEntries(json);if(std.entries.length)return std;
+ const out=[];let cs=0,bsLeaves=0;
+ const num=o=>{if(o==null)return null;if(typeof o==='number')return o;if(typeof o==='string'){const v=parseFloat(o.replace(/,/g,''));return o.trim()!==''&&!isNaN(v)?v:null;}
+  if(Array.isArray(o)){for(const x of o){const v=num(x);if(v!=null)return v;}return null;}
+  if(typeof o==='object'){for(const k of Object.keys(o)){if(/amt|amount|value/i.test(k)){const v=num(o[k]);if(v!=null)return v;}}}return null;};
+ const named=o=>{if(Array.isArray(o))return o.some(named);if(!o||typeof o!=='object')return false;if(nm(o))return true;return Object.keys(o).some(k=>named(o[k]));};
+ const skipName=/profit\s*&?\s*loss|gross\s*(profit|loss)|net\s*(profit|loss)|^total/i;
+ const cls=n=>{const l=n.toLowerCase();
+  if(skipName.test(l))return null;
+  if(/closing\s*stock/.test(l))return'#CS';if(/opening\s*stock/.test(l))return'Opening Stock';if(/purchase/.test(l))return'Purchases of Stock-in-Trade';
+  if(/\bsales?\b|revenue|turnover/.test(l))return'Revenue from Operations';
+  if(/income|received|receipt|dividend|gain|discount\s*rec|commission\s*rec/.test(l)&&!/expense|paid/.test(l))return'Other Income';
+  return plExp(n);};
+ const countLeaves=o=>{if(Array.isArray(o))return o.forEach(countLeaves);if(!o||typeof o!=='object')return;if(nm(o)&&!Object.keys(o).some(k=>!/^(bsname|dspaccname)$/.test(k)&&named(o[k]))){bsLeaves++;return;}Object.keys(o).forEach(k=>countLeaves(o[k]));};
+ const walk=(o,key)=>{if(Array.isArray(o))return o.forEach(x=>walk(x,key));if(!o||typeof o!=='object')return;
+  if(/^bs(sources|app)$/i.test(key||'')){countLeaves(o);return;}
+  const n=nm(o),ks=Object.keys(o).filter(k=>!/^(bsname|dspaccname)$/.test(k)),kids=ks.some(k=>named(o[k]));
+  if(n&&!kids){const v=num(ks.map(k=>o[k]));if(v){const h=cls(n);if(h==='#CS')cs+=Math.abs(v);else if(h)out.push({name:n,head:h,amount:Math.abs(v)});}return;}
+  ks.forEach(k=>walk(o[k],k));};
+ walk(json,'');
+ return{entries:out,net:0,cs:r2(cs),bsOnly:!out.length&&!cs&&bsLeaves>0,bsLeaves};}
+function plAnyCheck(r){if(r.entries.length||r.cs){const isI=e=>/^(Revenue from Operations|Other Income)$/.test(e.head),inc=r.entries.filter(isI).reduce((a,e)=>a+e.amount,0),ex=r.entries.filter(e=>!isI(e)).reduce((a,e)=>a+e.amount,0);r.calc=r2(inc-ex+(r.cs||0));r.warn=(r.net&&Math.abs(r.calc-r.net)>1)?'Net per JSON '+fmt(r.net)+' vs ledgers read '+fmt(r.calc)+' (difference '+fmt(r2(r.net-r.calc))+') - some ledger may be missing':'';}
+ if(!r.entries.length&&!r.cs)throw new Error(r.bsOnly?'This file contains only Balance Sheet groups ('+r.bsLeaves+' ledgers) and no income/expense ledgers, so there is no P&L to load. Please upload the Profit & Loss JSON.':'P&L format not recognised');return r;}
+
+function link(tb,bsx,plx){tb=tb||parsedTB;bsx=bsx||BSX;plx=plx||PLX;const res={},src={},used=new Set(),led=tb.filter(r=>!r.synthetic),netOf=r=>Math.abs(r.clDr-r.clCr);
+ const suspInBS=bsx.some(e=>/suspen/i.test(e.name)&&e.amount>0),suspOK=!bsx.length||suspInBS;
+ const entries=bsx.map(e=>({name:e.name,head:classifyBS(e),amount:e.amount})).concat(plx.map(e=>({...e})));
+ const byName={};led.forEach(r=>byName[norm(r.name)]=r);
+ entries.forEach(e=>{const r=byName[norm(e.name)];if(r&&e.head[0]!=='#'&&!used.has(r.name)){res[r.name]=e.head;src[r.name]='name';used.add(r.name);e.done=1;}});
+ entries.forEach(e=>{if(e.done||e.head[0]==='#'||!e.amount)return;const c=led.filter(r=>!used.has(r.name)&&netOf(r)>0&&Math.abs(r2(netOf(r))-r2(e.amount))<0.015);
+  if(c.length===1){res[c[0].name]=e.head;src[c[0].name]='amount';used.add(c[0].name);e.done=1;}});
+ led.forEach(r=>{if(used.has(r.name))return;const n=r.name.toLowerCase(),isDr=(r.clDr||r.clCr)?r.clDr>r.clCr:r.opDr>r.opCr;
+  const isRs=/profit\s*(&|and)\s*loss|reserve|surplus/.test(n);res[r.name]=isRs?'Reserves & Surplus':(suspOK&&/suspen/.test(n))?(isDr?'Other Current Assets':'Other Current Liabilities'):(!isDr&&/unsecured/.test(n))?'Unsecured Loans':(!isDr&&/secured/.test(n))?'Secured Loans':(!isDr&&/provision/.test(n))?(/long.?term|non.?current/.test(n)?'Long-term Provisions':'Short-term Provisions'):/payable|outstanding|provision/.test(n)?'Other Current Liabilities':(!isDr&&/overdraft|cash credit|\bo\/?d\b|\bcc\b/.test(n))?'Short Term Borrowings':(!isDr&&/\bloans?\b|borrow/.test(n))?'Long Term Borrowings':(isDr&&/capital work|\bcwip\b/.test(n))?'Capital Work-In-Progress':(isDr&&/goodwill|software|patent|trade.?mark|copyright|licen[cs]e|intangible|website|know.?how/.test(n))?'Intangible Assets':(isDr&&/machiner|furniture|computer|vehicle|building|\bland\b|equipment/.test(n))?'Property, Plant & Equipment':(isDr&&/\bloans?\b|advance|deposit/.test(n))?'Short Term Loans & Advances':(/\bbank\b/.test(n)&&isDr)?'Cash and Cash Equivalents':isDr?'Trade Receivables':'Trade Payables (Others)';src[r.name]=isRs?'rs':'sign';});
+ return{res,src};}
+function synth(tb,lk,bsx,plcs,plnet){const forced={},add=(name,head,o)=>{forced[name]=head;tb.push({name,opDr:0,opCr:0,clDr:0,clCr:0,synthetic:true,...o});};
+ const cs=plcs||(bsx.find(e=>classifyBS(e)==='#CS')||{}).amount||0;
+ if(cs>0){const os=tb.find(r=>lk.res[r.name]==='Opening Stock');
+  add('Closing Stock (from Tally BS) -> Inventories','Inventories',{clDr:cs,opDr:os?os.opDr:0});
+  add('Closing Stock (from Tally P&L) -> Less: Closing Stock','Less: Closing Stock',{clCr:cs});}
+ if(plnet)add('Profit/(Loss) for the year (from Tally P&L) -> Reserves & Surplus','Reserves & Surplus',plnet>0?{clCr:plnet}:{clDr:-plnet});
+ const pD=bsx.filter(e=>/sundry debtor/i.test(e.name)).reduce((s,e)=>s+e.amount,0),pC=bsx.filter(e=>/sundry creditor/i.test(e.name)).reduce((s,e)=>s+e.amount,0);
+ if(pD||pC){let R=0,P=0;tb.forEach(r=>{if(r.synthetic)return;const h=lk.res[r.name];if(h==='Trade Receivables')R+=r.clDr-r.clCr;else if(h==='Trade Payables (Others)'||h==='Trade Payables (MSME)')P+=r.clCr-r.clDr;});
+  const n1=r2(R-pD),n2=r2(P-pC);
+  if(n1>0.01&&Math.abs(n1-n2)<1){if(tb===parsedTB)SETOFF_GAP=n1;
+   if(NETOFF){add('Set-off: credit balances within Sundry Debtors (net as per Tally) -> Trade Receivables','Trade Receivables',{clCr:n1});
+   add('Set-off: debit balances within Sundry Creditors (net as per Tally) -> Trade Payables','Trade Payables (Others)',{clDr:n2});}}}
+ return forced;}
+let NETOFF=false,SETOFF_GAP=0;
+const bsTotal=()=>NOTALLY?0:r2(BSTOT+(NETOFF?0:SETOFF_GAP));
+function rebuild(){parsedTB=parsedTB.filter(r=>!r.synthetic);FORCED={};SETOFF_GAP=0;if(!parsedTB.length)return;LINK=link(parsedTB,BSX,PLX);FORCED=synth(parsedTB,LINK,BSX,PLCS,PLNET);}
+function rebuildPY(){PYTBX=PYTB.map(r=>({...r}));PYLINK={res:{},src:{}};PYFORCED={};if(!PYTBX.length)return;PYLINK=link(PYTBX,PYBSX,PYPLX);PYFORCED=synth(PYTBX,PYLINK,PYBSX,PYPLCS,PYPLNET);}
+
+document.querySelectorAll('.uz').forEach(z=>z.addEventListener('click',e=>{if(e.target.tagName!=='INPUT')$(z.dataset.in).click();}));
+function hook(id,st,nmId,label,fn){$(id).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;$(nmId).textContent='✓ '+f.name;
+ try{const msg=fn(await readJSON(f));$(st).textContent=msg;$(st).className='status-badge ok';$('uploadStatus').innerHTML='';refresh();}
+ catch(err){$('uploadStatus').innerHTML=`<div class="al ae">${label} import error: ${err.message}</div>`;}});}
+hook('tbInput','statusTB','fileNameTB','TB',j=>{parseTB(j);if(!parsedTB.length)throw new Error('Trial Balance format not recognised');return parsedTB.length+' ledgers';});
+hook('bsInput','statusBS','fileNameBS','BS',j=>{const r=bsEntries(j);if(!r.entries.length)throw new Error('Balance Sheet format not recognised');BSX=r.entries;BSTOT=r.totA;return BSX.length+' items';});
+hook('plInput','statusPL','fileNamePL','P&L',j=>{const r=plAnyCheck(plEntriesAny(j));PLX=r.entries;PLNET=r.net;PLCS=r.cs;return PLX.length+' items'+(r.warn?' ⚠ '+r.warn:' ✓ net agrees with JSON');});
+hook('pyTbInput','statusPYTB','fileNamePYTB','PY TB',j=>{const a=parseTBInto(j);if(!a.length)throw new Error('Trial Balance format not recognised');PYTB=a;return a.length+' ledgers';});
+hook('pyBsInput','statusPYBS','fileNamePYBS','PY BS',j=>{const r=bsEntries(j);if(!r.entries.length)throw new Error('Balance Sheet format not recognised');PYBSX=r.entries;return r.entries.length+' items';});
+hook('pyPlInput','statusPYPL','fileNamePYPL','PY P&L',j=>{const r=plAnyCheck(plEntriesAny(j));PYPLX=r.entries;PYPLNET=r.net;PYPLCS=r.cs;return r.entries.length+' items'+(r.warn?' ⚠ '+r.warn:' ✓ net agrees with JSON');});
+function setPyMode(v){$('pyMode').value=v;document.querySelectorAll('input[name=pyModeR]').forEach(x=>x.checked=x.value===v);
+ $('pyOpen').classList.toggle('hidden',v!=='open');$('pyOpenUp').classList.toggle('hidden',v!=='open');$('pyManual').classList.remove('hidden');
+ $('pyManualHint').textContent=v==='open'?'Balance Sheet previous year figures are taken from the opening balances. Upload the previous year P&L JSON above, or enter the previous year Profit & Loss figures below (head-wise, or click "+ ledger" for ledger-wise amounts). Enter positive amounts.':'Enter the previous year amount for each head. Current year ledgers are listed under each head; enter their previous year amounts and the head total is calculated automatically. For Reserves & Surplus, include the previous year profit.';
+ renderManual();linkReport();}
+function fillPYPL(r){syncManL();
+ const had=HEADS.pl.some(h=>(parseFloat(MAN[h])||0)||(MANL[h]||[]).some(x=>parseFloat(x.amt)));
+ if(had&&!confirm('Previous year P&L figures are already entered. Replace them with the uploaded PY P&L JSON?'))return false;
+ const ent=r.entries.map(e=>({...e}));if(r.cs>0)ent.push({name:'Closing Stock',head:'Less: Closing Stock',amount:r.cs});
+ HEADS.pl.forEach(h=>{MAN[h]='';MANL[h]=(MANL[h]||[]).filter(x=>!x.extra);MANL[h].forEach(x=>x.amt='');});
+ const used=new Set();let n=0,skipped=0;
+ ent.forEach(e=>{const h=e.head;if(!PLH.has(h)||!e.amount){skipped++;return;}const a=MANL[h]||(MANL[h]=[]),k=norm(e.name),x=a.find(q=>!q.extra&&norm(q.name.replace(/ ->.*$/,''))===k);
+  if(x)x.amt=r2((parseFloat(x.amt)||0)+e.amount);else{const y=a.find(q=>q.extra&&norm(q.name)===k);if(y)y.amt=r2((parseFloat(y.amt)||0)+e.amount);else a.push({name:e.name,amt:r2(e.amount),extra:1});}
+  used.add(h);n++;});
+ used.forEach(h=>{MAN[h]=r2((MANL[h]||[]).reduce((p,x)=>p+(parseFloat(x.amt)||0),0));});
+ renderManual();linkReport();return {n,heads:used.size,skipped};}
+$('pyOpenPlInput').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const r=plAnyCheck(plEntriesAny(await readJSON(f)));
+  const o=fillPYPL(r);if(!o)return;$('fileNamePYOPL').textContent='✓ '+f.name;const b=$('statusPYOPL');b.textContent=o.n+' items loaded into '+o.heads+' heads'+(r.warn?' ⚠ '+r.warn:' ✓ net agrees with JSON');b.className='status-badge ok';
+ }catch(err){alert('PY P&L import error: '+err.message);}});
+function refresh(){if(!parsedTB.length||NOTALLY)return;rebuild();['mappingCard','schedulesCard','generateCard'].forEach(i=>$(i).classList.remove('hidden'));renderMapping();rebuildPY();renderPYMapping();
+ const hasOpen=parsedTB.some(r=>!r.synthetic&&(r.opDr||r.opCr)),ro=document.querySelector('input[name=pyModeR][value=open]');ro.disabled=!hasOpen;
+ $('pyAutoMsg').innerHTML=hasOpen?'':'<div class="al aw">The uploaded Trial Balance has no opening balances, so previous year figures cannot be derived. Please enter the previous year amounts manually below.</div>';
+ if(!hasOpen&&g('pyMode')==='open')setPyMode('manual');else setPyMode(g('pyMode'));}
+
+const guessHead=n=>FORCED[n]||LINK.res[n]||'';
+const dcAmt=(d,c)=>{const n=r2(d-c);return Math.abs(n)<0.005?'-':fmt(Math.abs(n))+(n>0?' Dr':' Cr');};
+let lastSel=-1;
+function retag(tr,txt,col){const s=tr.querySelector('select');if(!s)return;let d=s.parentNode.querySelector('div');if(!d){d=document.createElement('div');s.parentNode.appendChild(d);}d.style.cssText='font-size:10px;color:'+(col||'#64748b');d.textContent=txt||'';if(!txt)d.remove();}
+function selUpdate(){let n=0;document.querySelectorAll('#mappingBody tr').forEach(tr=>{const c=tr.querySelector('.rk'),on=!!(c&&c.checked);tr.classList.toggle('sel',on);if(on)n++;});$('selCnt').textContent=n+' selected';}
+function updateChips(){let rv=0,un=0,all=0;document.querySelectorAll('#mappingBody tr').forEach(tr=>{all++;const h=tr.querySelector('select').value;if(!h){un++;rv++;}else if(tr.dataset.src==='sign'||tr.dataset.src==='rs')rv++;});
+ $('cRev').textContent=rv;$('cUn').textContent=un;$('cAll').textContent=all;const f=$('ff').value;document.querySelectorAll('#mapChips button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));return rv;}
+function setFilter(v){$('ff').value=v;filt('mappingBody','fq','ff');updateChips();}
+const QUICK=['Trade Receivables','Trade Payables (Others)','Cash and Cash Equivalents','Short Term Loans & Advances','Other Current Liabilities','Other Current Assets','Short Term Borrowings','Long Term Borrowings','Secured Loans','Unsecured Loans','Short-term Provisions','Long-term Provisions','Property, Plant & Equipment','Other Expenses'];
+function renderQuick(){$('quickHeads').innerHTML='<span style="font-size:11px;color:#64748b;align-self:center">Tick ledgers, then click:</span>'+QUICK.filter(visH).map(h=>`<button type="button" data-qh="${h}">${HL(h)}</button>`).join('');}
+function renderMapping(){const opts=HEAD_OPTS();
+ const T={name:['Exact name match','#16a34a'],amount:['≈ amount match','#2563eb'],sign:['By Dr/Cr sign / name keyword – review','#b45309'],rs:['≈ P&L A/c / reserve by name – verify','#b45309'],syn:['Added from BS/P&L','#7c3aed']};
+ const tb=$('mappingBody');tb.innerHTML='';lastSel=-1;$('selAll').checked=false;
+ parsedTB.forEach((r,idx)=>{const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="checkbox" class="rk"></td><td><span class="ln">${esc(r.name)}</span>${LEDTOOLS}</td><td class="num ${r.opDr>=r.opCr?'dr':'cr'}">${dcAmt(r.opDr,r.opCr)}</td><td class="num ${r.clDr>=r.clCr?'dr':'cr'}">${dcAmt(r.clDr,r.clCr)}</td><td><select data-idx="${idx}">${opts}</select></td>`;
+  tb.appendChild(tr);const s=tr.querySelector('select');s.value=guessHead(r.name);const k=FORCED[r.name]?'syn':LINK.src[r.name];tr.dataset.src=k||'';
+  if(T[k])retag(tr,T[k][0],T[k][1]);});
+ renderQuick();const rv=updateChips();setFilter(rv>0?'review':'all');selUpdate();linkReport();}
+function collectMapping(){const m={},init=h=>m[h]||(m[h]={opDr:0,opCr:0,clDr:0,clCr:0,pyDr:0,pyCr:0,ledgers:[]});
+ document.querySelectorAll('#mappingBody select').forEach(sel=>{const h=sel.value;if(!h)return;const r=parsedTB[+sel.dataset.idx],x=init(h);
+  ['opDr','opCr','clDr','clCr'].forEach(k=>x[k]+=r[k]);x.ledgers.push({name:r.name,dr:r.clDr,cr:r.clCr,od:r.opDr,oc:r.opCr,pd:0,pc:0});});
+ if(g('pyMode')==='upload')document.querySelectorAll('#pyMappingBody select').forEach(sel=>{const h=sel.value;if(!h)return;const r=PYTBX[+sel.dataset.idx];if(!r)return;const x=init(h);
+  x.pyDr+=r.clDr;x.pyCr+=r.clCr;let L=x.ledgers.find(l=>l.name===r.name);if(!L){L={name:r.name,dr:0,cr:0,od:0,oc:0,pd:0,pc:0};x.ledgers.push(L);}L.pd+=r.clDr;L.pc+=r.clCr;L.py=1;});
+ return m;}
+function pyOf(m,h,side){const mode=g('pyMode');if(mode==='manual'||(mode==='open'&&PLH.has(h)))return r2(parseFloat(MAN[h])||0);const x=m[h];if(!x)return 0;
+ if(mode==='upload')return r2(side==='dr'?x.pyDr-x.pyCr:x.pyCr-x.pyDr);return PLH.has(h)?0:r2(side==='dr'?x.opDr-x.opCr:x.opCr-x.opDr);}
+let MANCY={},NOTALLY=false;
+function val(m,h,side){const x=m[h],py=pyOf(m,h,side);if(NOTALLY)return{cy:r2(parseFloat(MANCY[h])||0),py,ledgers:[]};if(!x)return{cy:0,py,ledgers:[]};const f=(d,c)=>side==='dr'?d-c:c-d;return{cy:r2(f(x.clDr,x.clCr)),py,ledgers:x.ledgers};}
+function linkReport(){const c={name:0,amount:0,sign:0,syn:0,rs:0};parsedTB.forEach(r=>{const k=FORCED[r.name]?'syn':LINK.src[r.name];if(k)c[k]++;});
+ $('autoMatchInfo').innerHTML=`✓ ${c.name} exact name · ${c.amount} amount-match · ${c.syn} added (closing stock / profit / set-off) · ${c.sign} party ledgers by Dr/Cr sign`;
+ const m=collectMapping(),ok=d=>Math.abs(d)<1,cl=d=>ok(d)?'as':'ae',ic=d=>ok(d)?'✓':'✗',sum=(hs,s,k)=>hs.reduce((a,h)=>a+val(m,h,s)[k],0);
+ const Lc=sum(LIAB,'cr','cy'),Ac=sum(ASSET,'dr','cy'),Lp=sum(LIAB,'cr','py'),Ap=sum(ASSET,'dr','py');
+ let h=`<div class="al ${cl(Lc-Ac)}">${ic(Lc-Ac)} Current year: Liabilities ${fmt(Lc)} vs Assets ${fmt(Ac)} (diff ${fmt(r2(Lc-Ac))})</div>`;
+ if(BSTOT&&!NOTALLY){const bT=bsTotal(),dt=r2(Ac-bT);h+=`<div class="al ${cl(dt)}">${ic(dt)} Tally BS total ${fmt(bT)}${(!NETOFF&&SETOFF_GAP)?' (Tally total + '+fmt(SETOFF_GAP)+' gross-up of debit/credit balances in Sundry Debtors/Creditors)':''} vs Report total ${fmt(Ac)} (diff ${fmt(dt)})</div>`;}
+ const pm=g('pyMode'),pyTxt=pm==='manual'?'manual entry':pm==='upload'?'PY Tally JSON':'opening balance';
+ const pa=(pm==='upload'&&!PYTB.length)?'<div class="al aw">Please upload the previous year Trial Balance JSON or select another option above.</div>':`<div class="al ${cl(Lp-Ap)}">${ic(Lp-Ap)} Previous year (${pyTxt}): Liabilities ${fmt(Lp)} vs Assets ${fmt(Ap)} (diff ${fmt(r2(Lp-Ap))})</div>`;
+ h+=pa;if($('pyCheck')&&!NOTALLY)$('pyCheck').innerHTML=pa;
+ let hasRev=false;document.querySelectorAll('#mappingBody select').forEach(s=>{if(s.value==='Revenue from Operations')hasRev=true;});
+ if(!hasRev&&!NOTALLY)h+='<div class="al ae">Sales / Revenue has not been mapped.</div>';$('linkReport').innerHTML=h;if(NOTALLY&&$('pyCheck'))$('pyCheck').innerHTML=h;}
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.matches('#mappingBody select')){const tr=t.closest('tr');tr.dataset.src=t.value?'ok':'';retag(tr,t.value?'Assigned by you':'','#64748b');linkReport();updateChips();filt('mappingBody','fq','ff');}
+ else if(t.matches('#pyMappingBody select'))linkReport();});
+$('mapChips').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setFilter(b.dataset.f);});
+$('quickHeads').addEventListener('click',e=>{const b=e.target.closest('button');if(b)bulk('mappingBody',null,'fq','ff',b.dataset.qh,true);});
+$('selAll').addEventListener('change',e=>{document.querySelectorAll('#mappingBody tr:not(.hidden) .rk').forEach(c=>c.checked=e.target.checked);selUpdate();});
+$('mappingBody').addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr||e.target.closest('select')||e.target.closest('.ledbtn'))return;const cb=tr.querySelector('.rk');if(!cb)return;
+ if(e.target!==cb)cb.checked=!cb.checked;const rows=[...document.querySelectorAll('#mappingBody tr:not(.hidden)')],i=rows.indexOf(tr);
+ if(e.shiftKey&&lastSel>=0&&rows[lastSel]){const a=Math.min(i,lastSel),b=Math.max(i,lastSel);rows.slice(a,b+1).forEach(r=>r.querySelector('.rk').checked=cb.checked);}
+ lastSel=i;selUpdate();});
+$('acceptShown').addEventListener('click',()=>{document.querySelectorAll('#mappingBody tr:not(.hidden)').forEach(tr=>{if(tr.querySelector('select').value){tr.dataset.src='ok';retag(tr,'Checked','#16a34a');}});filt('mappingBody','fq','ff');updateChips();});
+$('btnAutoAssign').onclick=()=>renderMapping();
+$('btnClearAll').onclick=()=>{document.querySelectorAll('#mappingBody tr').forEach(tr=>{tr.querySelector('select').value='';tr.dataset.src='';retag(tr,'');});linkReport();updateChips();filt('mappingBody','fq','ff');};
+
+function filt(bodyId,qId,fId){const q=($(qId).value||'').toLowerCase().trim().split(/\s+/).filter(Boolean),f=fId?$(fId).value:'all';let n=0,t=0;
+ document.querySelectorAll('#'+bodyId+' tr').forEach(tr=>{if(tr.classList.contains('grp')){tr.classList.toggle('hidden',q.length>0);return;}t++;
+  const s=tr.querySelector('select'),hd=s?s.value:'',tag=tr.querySelector('td:last-child div')?.textContent||'';
+  let txt=([...tr.cells].slice(0,-1).map(c=>c.textContent).join(' ')+' '+hd+' '+tag).toLowerCase();txt+=' '+txt.replace(/,/g,'');
+  let ok=q.every(w=>txt.includes(w));
+  if(ok&&f==='unassigned')ok=!hd;if(ok&&f==='assigned')ok=!!hd;if(ok&&f==='sign')ok=tr.dataset.src==='sign';if(ok&&f==='review')ok=!hd||tr.dataset.src==='sign'||tr.dataset.src==='rs';
+  tr.classList.toggle('hidden',!ok);if(ok)n++;});
+ const c=$(bodyId+'Cnt');if(c)c.textContent='Showing '+n+' of '+t;}
+function bulk(bodyId,headId,qId,fId,headVal,needSel){const h=headVal||$(headId).value;if(!h)return alert('Please select a head from the dropdown first.');
+ const chk=[...document.querySelectorAll('#'+bodyId+' tr:not(.hidden) .rk:checked')].map(c=>c.closest('tr'));
+ if(needSel&&!chk.length)return alert('Tick one or more ledgers first.');
+ const rows=chk.length?chk:[...document.querySelectorAll('#'+bodyId+' tr:not(.hidden)')];if(!rows.length)return alert('No visible ledgers.');
+ if(!chk.length&&!confirm('No ledgers ticked. Assign all '+rows.length+' shown ledgers to "'+h+'"?'))return;
+ rows.forEach(tr=>{const s=tr.querySelector('select');if(!s)return;s.value=h;if(tr.querySelector('.rk')){tr.dataset.src='ok';retag(tr,'Assigned by you','#64748b');tr.querySelector('.rk').checked=false;}});
+ linkReport();if(bodyId==='mappingBody'){selUpdate();filt(bodyId,qId,fId);updateChips();}else filt(bodyId,qId,fId);}
+function HL(h){if(HNAME[h])return HNAME[h];const e=g('entityType');if(h==='Share Capital')return e==='partnership'?"Partners' Capital":e==='proprietorship'?"Proprietor's Capital":h;
+ if(h==='Reserves & Surplus')return e==='partnership'?"Partners' Current Account":e==='proprietorship'?"Proprietor's Current Account":h;return h;}
+const HGROUPS=[
+ ['BS LIABILITY - Capital & Reserves',['Share Capital','Reserves & Surplus']],
+ ['BS LIABILITY - Non-Current Liabilities',['Long Term Borrowings','Secured Loans','Unsecured Loans','Deferred Tax Liabilities','Other Long Term Liabilities','Long-term Provisions']],
+ ['BS LIABILITY - Current Liabilities',['Short Term Borrowings','Trade Payables (MSME)','Trade Payables (Others)','Other Current Liabilities','Short-term Provisions']],
+ ['BS ASSET - Fixed Assets (details in Schedule)',['Property, Plant & Equipment','Intangible Assets','Capital Work-In-Progress']],
+ ['BS ASSET - Other Non-Current Assets',['Non-Current Investments','Deferred Tax Assets','Long Term Loans & Advances','Other Non-Current Assets']],
+ ['BS ASSET - Current Assets',['Current Investments','Inventories','Trade Receivables','Cash and Cash Equivalents','Short Term Loans & Advances','Other Current Assets']],
+ ['P&L - INCOME',['Revenue from Operations','Other Income']],
+ ['P&L - EXPENSES: Cost of Goods',['Cost of Materials Consumed','Purchases of Stock-in-Trade','Opening Stock','Less: Closing Stock','Direct Expenses','Freight & Carriage','Power & Fuel']],
+ ['P&L - EXPENSES: Employee & Finance',['Employee Benefits Expense','Directors / Partners Remuneration','Finance Costs','Bank Charges','Depreciation & Amortization']],
+ ['P&L - EXPENSES: Administrative & Selling',['Rent','Repairs & Maintenance','Rates & Taxes','Insurance','Travelling & Conveyance','Printing & Stationery','Communication Expenses','Professional & Legal Fees','Payment to Auditors','Selling & Distribution Expenses','Advertisement & Business Promotion','Commission & Brokerage','Bad Debts & Provisions','Other Expenses']]];
+const HDESC={'Property, Plant & Equipment':' (Land, Building, Plant & Machinery, Furniture, Vehicles, Computers)','Intangible Assets':' (Goodwill, Software, Patents)','Capital Work-In-Progress':' (assets under construction)'};
+const HEAD_OPTS=()=>{const seen=new Set();let o='<option value="">-- Assign --</option>';
+ HGROUPS.forEach(([lab,hs])=>{const v=hs.filter(h=>visH(h)&&(seen.add(h),true));if(v.length)o+=`<optgroup label="${lab}">`+v.map(h=>`<option value="${h}">${HL(h)}${HDESC[h]||''}</option>`).join('')+'</optgroup>';});
+ const rest=HEADS.bs.concat(HEADS.pl).filter(h=>visH(h)&&!seen.has(h));if(rest.length)o+='<optgroup label="OTHER">'+rest.map(h=>`<option value="${h}">${HL(h)}</option>`).join('')+'</optgroup>';
+ return o;};
+$('bulkHead').innerHTML=HEAD_OPTS().replace('-- Assign --','Bulk assign head...');$('pBulkHead').innerHTML=HEAD_OPTS().replace('-- Assign --','Bulk assign head...');
+['fq','ff'].forEach(id=>['input','change'].forEach(ev=>$(id).addEventListener(ev,()=>filt('mappingBody','fq','ff'))));
+['pfq','pff'].forEach(id=>['input','change'].forEach(ev=>$(id).addEventListener(ev,()=>filt('pyMappingBody','pfq','pff'))));
+$('mq').addEventListener('input',()=>filt('manBody','mq',null));
+$('bulkApply').onclick=()=>bulk('mappingBody','bulkHead','fq','ff');
+function namesFromJSON(j){const out=[];(j?.dspaccbody?.dspaccline||[]).forEach(l=>{const n=(l?.dspaccname?.dspdispname||'').trim();if(n)out.push(n);});
+ if(!out.length)(function w(o){if(Array.isArray(o))o.forEach(w);else if(o&&typeof o==='object')for(const k in o){if(k==='dspdispname'&&typeof o[k]==='string'&&o[k].trim())out.push(o[k].trim());else w(o[k]);}})(j);
+ return [...new Set(out)];}
+$('impHead').innerHTML=HEAD_OPTS().replace('-- Assign --','Choose group / head...');
+$('impBtn').onclick=()=>$('impInput').click();
+$('impInput').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ if(!parsedTB.length){alert('Please upload the Trial Balance first, then use this option.');return;}
+ try{const names=namesFromJSON(await readJSON(f));if(!names.length)throw new Error('No ledger names found in this JSON.');
+  const want=new Set(names.map(norm)),found=new Set();$('fq').value='';setFilter('all');let hit=0,first=null;
+  document.querySelectorAll('#mappingBody tr').forEach(tr=>{const cb=tr.querySelector('.rk'),sl=tr.querySelector('select');if(!cb||!sl)return;const r=parsedTB[+sl.dataset.idx],k=r?norm(r.name):'',on=!!k&&want.has(k);cb.checked=on;if(on){hit++;found.add(k);if(!first)first=tr;}});
+  selUpdate();$('impFile').textContent='✓ '+f.name;const miss=names.filter(n=>!found.has(norm(n)));
+  $('impMsg').textContent=hit+' of '+names.length+' names found in the Trial Balance and ticked below.';$('impMsg').style.color=hit?'#166534':'#991b1b';
+  $('impNFw').classList.toggle('hidden',!miss.length);$('impNFs').textContent=miss.length+' name(s) not found in Trial Balance (click to view)';$('impNF').innerHTML=miss.map(esc).join('<br>');
+  $('impPanel').classList.remove('hidden');if(first)first.scrollIntoView({block:'center'});
+ }catch(err){alert('JSON import error: '+err.message);}});
+$('impApply').onclick=()=>{if(!$('impHead').value)return alert('Please choose the group / head first.');bulk('mappingBody',null,'fq','ff',$('impHead').value,true);if(!document.querySelector('#mappingBody .rk:checked'))$('impPanel').classList.add('hidden');};
+$('impClear').onclick=()=>{document.querySelectorAll('#mappingBody .rk').forEach(c=>c.checked=false);selUpdate();};$('pBulkApply').onclick=()=>bulk('pyMappingBody','pBulkHead','pfq','pff');
+
+function curSel(){const o={};document.querySelectorAll('#mappingBody select').forEach(s=>{const r=parsedTB[+s.dataset.idx];if(r&&s.value)o[r.name]=s.value;});return o;}
+function renderPYMapping(){const tb=$('pyMappingBody');tb.innerHTML='';
+ if(!PYTBX.length){$('pyMapInfo').textContent='Previous year Trial Balance not uploaded yet.';$('pyMappingBodyCnt').textContent='';linkReport();return;}
+ const cs=curSel(),opts=HEAD_OPTS(),c={cy:0,syn:0,name:0,amount:0,sign:0,rs:0},
+  T={cy:['From CY mapping','#16a34a'],syn:['Added from PY BS/P&L','#7c3aed'],name:['Exact name match (PY BS/P&L)','#16a34a'],amount:['≈ amount match','#2563eb'],sign:['By Dr/Cr sign / name keyword – review','#b45309'],rs:['≈ P&L A/c / reserve by name – verify','#b45309']};
+ PYTBX.forEach((r,idx)=>{const tr=document.createElement('tr');tr.innerHTML=`<td><span class="ln">${esc(r.name)}</span>${LEDTOOLS}</td><td class="num dr">${fmt(r.clDr)}</td><td class="num cr">${fmt(r.clCr)}</td><td><select data-idx="${idx}">${opts}</select></td>`;tb.appendChild(tr);
+  const s=tr.querySelector('select');let k,h;
+  if(cs[r.name]){h=cs[r.name];k='cy';}else if(PYFORCED[r.name]){h=PYFORCED[r.name];k='syn';}else{h=PYLINK.res[r.name]||'';k=PYLINK.src[r.name]||'';}
+  s.value=h;tr.dataset.src=k;if(c[k]!==undefined)c[k]++;
+  if(T[k]){const d=document.createElement('div');d.style.cssText='font-size:10px;color:'+T[k][1];d.textContent=T[k][0];s.parentNode.appendChild(d);}});
+ $('pyMapInfo').textContent=`${c.cy} from CY mapping · ${c.name+c.amount+c.rs} auto-linked · ${c.syn} added · ${c.sign} by Dr/Cr sign (review)`;
+ filt('pyMappingBody','pfq','pff');linkReport();}
+$('pySync').onclick=renderPYMapping;
+
+let MANL={};
+const qa=t=>esc(t).replace(/"/g,'&quot;');
+function syncManL(){const m=parsedTB.length&&!NOTALLY?collectMapping():{},old=MANL,oa={};MANL={};
+ Object.values(old).forEach(a=>a.forEach(e=>{if(!e.extra)oa[e.name]=e.amt;}));
+ HEADS.bs.concat(HEADS.pl).forEach(h=>{const cy=(m[h]?.ledgers||[]).filter(l=>!l.py).map(l=>({name:l.name,amt:oa[l.name]??''}));
+  MANL[h]=cy.concat((old[h]||[]).filter(e=>e.extra));});}
+function renderManual(){syncManL();let h='';
+ const grp=(t,list)=>{h+=`<tr class="grp"><td colspan="4"><b>${t}</b></td></tr>`;list.filter(visH).forEach(x=>{
+  const lc=NOTALLY&&(MANL[x]||[]).some(e=>parseFloat(e.cy)),lp=NOTALLY&&(MANL[x]||[]).some(e=>parseFloat(e.amt));
+  h+=`<tr><td><b>${HL(x)}</b> <button class="btn bg" type="button" data-madd="${qa(x)}" style="padding:2px 8px;font-size:11px">+ ledger</button> <button class="btn bg" type="button" data-hren="${qa(x)}" title="Rename head" style="padding:2px 8px;font-size:11px">&#9998;</button><button class="btn bd" type="button" data-hdel="${qa(x)}" title="Delete head" style="padding:2px 8px;font-size:11px">&times;</button></td><td>${sd(x)==='cr'?'Cr':'Dr'}</td>${NOTALLY?`<td><input type="number" step="0.01" data-mc="${qa(x)}" value="${MANCY[x]||''}"${lc?' readonly title="Auto-total of ledgers below"':''}></td>`:''}<td><input type="number" step="0.01" data-mh="${qa(x)}" value="${MAN[x]||''}"${lp?' readonly title="Auto-total of ledgers below"':''}></td></tr>`;
+  (MANL[x]||[]).forEach((e,i)=>{if(NOTALLY){h+=`<tr><td style="padding-left:22px"><input type="text" data-lh="${qa(x)}" data-ln="${i}" value="${qa(e.name)}" placeholder="Ledger name" style="text-align:left;width:75%"> <button class="btn bd" type="button" data-mdh="${qa(x)}" data-mdi="${i}">×</button></td><td></td><td><input type="number" step="0.01" data-lh="${qa(x)}" data-lc="${i}" value="${e.cy??''}"></td><td><input type="number" step="0.01" data-lh="${qa(x)}" data-li="${i}" value="${e.amt}"></td></tr>`;return;}h+=`<tr><td style="padding-left:22px">${e.extra?`<input type="text" data-lh="${qa(x)}" data-ln="${i}" value="${qa(e.name)}" placeholder="PY ledger name" style="text-align:left;width:75%"> <button class="btn bd" type="button" data-mdh="${qa(x)}" data-mdi="${i}">×</button>`:`${esc(e.name.replace(/ ->.*$/,''))} <button class="btn bg" type="button" data-lren="${qa(e.name.replace(/ ->.*$/,''))}" title="Rename ledger" style="padding:1px 6px;font-size:11px">&#9998;</button> <button class="btn bd" type="button" data-ldel="${qa(e.name.replace(/ ->.*$/,''))}" title="Delete ledger" style="padding:1px 6px;font-size:11px">&times;</button>`}</td><td></td><td><input type="number" step="0.01" data-lh="${qa(x)}" data-li="${i}" value="${e.amt}"></td></tr>`;});});};
+ if(g('pyMode')!=='open'||NOTALLY){grp('LIABILITIES (Cr)',LIAB);grp('ASSETS (Dr)',ASSET);}grp('PROFIT & LOSS',HEADS.pl);$('manBody').innerHTML=h;}
+$('manBody').addEventListener('input',e=>{const t=e.target,d=t.dataset;
+ if(d.mc!=null){MANCY[d.mc]=t.value;linkReport();return;}
+ if(d.mh!=null){MAN[d.mh]=t.value;linkReport();return;}
+ if(d.lh!=null){const a=MANL[d.lh];if(d.ln!=null){a[+d.ln].name=t.value;return;}
+  if(d.lc!=null){a[+d.lc].cy=t.value;
+   if(a.some(x=>parseFloat(x.cy))){const s=r2(a.reduce((p,x)=>p+(parseFloat(x.cy)||0),0));MANCY[d.lh]=s;
+    const hc=document.querySelector(`#manBody input[data-mc="${CSS.escape(d.lh)}"]`);if(hc){hc.value=s;hc.readOnly=true;}}
+   linkReport();return;}
+  a[+d.li].amt=t.value;
+  if(a.some(x=>parseFloat(x.amt))){const s=r2(a.reduce((p,x)=>p+(parseFloat(x.amt)||0),0));MAN[d.lh]=s;
+   const hi=document.querySelector(`#manBody input[data-mh="${CSS.escape(d.lh)}"]`);if(hi){hi.value=s;if(NOTALLY)hi.readOnly=true;}}
+  linkReport();}});
+$('manBody').addEventListener('click',e=>{const d=e.target.dataset;
+ if(d.hren!=null){renameHead(d.hren);return;}
+ if(d.hdel!=null){deleteHead(d.hdel);return;}
+ if(d.lren!=null){const i=parsedTB.findIndex(r=>r.name===d.lren);if(i>=0)ledRename('cy',i);return;}
+ if(d.ldel!=null){const i=parsedTB.findIndex(r=>r.name===d.ldel);if(i>=0)ledDelete('cy',i);return;}
+ if(d.madd!=null){MANL[d.madd].push({name:'',amt:'',extra:1});renderManual();}
+ if(d.mdh!=null){MANL[d.mdh].splice(+d.mdi,1);
+  if(NOTALLY){const a=MANL[d.mdh];[['cy',MANCY],['amt',MAN]].forEach(([k,o])=>{if(a.some(x=>parseFloat(x[k])))o[d.mdh]=r2(a.reduce((p,x)=>p+(parseFloat(x[k])||0),0));});}
+  renderManual();linkReport();}});
+$('mRefresh').onclick=renderManual;
+/* ---- Rename / delete heads and ledgers ---- */
+function renderHeadMgr(){const el=$('headMgr');if(!el)return;
+ const chip=h=>`<span class="hchip"><span>${esc(HL(h))}</span><button type="button" class="ledbtn" data-hren="${qa(h)}" title="Rename head">&#9998;</button><button type="button" class="ledbtn" data-hdel="${qa(h)}" title="Delete head">&#128465;</button></span>`;
+ const all=HEADS.bs.concat(HEADS.pl),gone=all.filter(h=>HGONE.has(h)),ren=Object.keys(HNAME).length;
+ el.innerHTML='<div class="hgrp"><b>Balance Sheet heads</b><div>'+HEADS.bs.filter(visH).map(chip).join('')+'</div></div><div class="hgrp"><b>P&amp;L heads</b><div>'+HEADS.pl.filter(visH).map(chip).join('')+'</div></div>'+((gone.length||ren)?'<button type="button" class="btn bg" id="headRestore">Restore original heads'+(gone.length?' ('+gone.length+' deleted)':'')+'</button>':'');}
+function headsChanged(){const o=HEAD_OPTS();
+ document.querySelectorAll('#mappingBody select,#pyMappingBody select').forEach(s=>{const v=s.value;s.innerHTML=o;s.value=v;});
+ $('bulkHead').innerHTML=o.replace('-- Assign --','Bulk assign head...');$('pBulkHead').innerHTML=o.replace('-- Assign --','Bulk assign head...');$('impHead').innerHTML=o.replace('-- Assign --','Choose group / head...');
+ renderQuick();renderHeadMgr();if(!$('pyManual').classList.contains('hidden'))renderManual();
+ updateChips();filt('mappingBody','fq','ff');filt('pyMappingBody','pfq','pff');linkReport();}
+function renameHead(h){const n=prompt('New name for this head:',HL(h));if(n==null)return;const t=n.trim();if(!t)return;if(t===h)delete HNAME[h];else HNAME[h]=t;headsChanged();}
+function deleteHead(h){if(HEADS.bs.concat(HEADS.pl).filter(visH).length<=1)return alert('At least one head must remain.');
+ if(!confirm('Delete head "'+HL(h)+'"?\n\nLedgers assigned to it become Unassigned and its figures are removed. You can bring it back with "Restore original heads".'))return;
+ HGONE.add(h);
+ document.querySelectorAll('#mappingBody select,#pyMappingBody select').forEach(s=>{if(s.value===h){s.value='';const tr=s.closest('tr');tr.dataset.src='';retag(tr,'Head deleted - please reassign','#b45309');}});
+ MAN[h]='';MANCY[h]='';if(MANL[h])MANL[h]=[];headsChanged();}
+function restoreHeads(){HGONE.clear();Object.keys(HNAME).forEach(k=>delete HNAME[k]);headsChanged();}
+$('headMgr').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.hren!=null)renameHead(b.dataset.hren);else if(b.dataset.hdel!=null)deleteHead(b.dataset.hdel);else if(b.id==='headRestore')restoreHeads();});
+const LEDCTX={cy:{arr:()=>parsedTB,body:'mappingBody',q:'fq',f:'ff',maps:()=>[FORCED,LINK.res,LINK.src]},py:{arr:()=>PYTBX,body:'pyMappingBody',q:'pfq',f:'pff',maps:()=>[PYFORCED,PYLINK.res,PYLINK.src]}};
+function ledRename(kind,i){const c=LEDCTX[kind],r=c.arr()[i];if(!r)return;const old=r.name,n=prompt('New ledger name:',old);if(n==null)return;const t=n.trim();if(!t||t===old)return;
+ r.name=t;c.maps().forEach(o=>{if(o&&Object.prototype.hasOwnProperty.call(o,old)){o[t]=o[old];delete o[old];}});
+ if(kind==='cy'){Object.values(MANL).forEach(a=>a.forEach(e=>{if(e.name===old)e.name=t;else if(e.name&&e.name.startsWith(old+' ->'))e.name=t+e.name.slice(old.length);}));}
+ else{PYTB.forEach(x=>{if(x.name===old)x.name=t;});}
+ const sel=[...document.querySelectorAll('#'+c.body+' select')].find(s=>+s.dataset.idx===i);if(sel){const nc=sel.closest('tr').querySelector('.ln');if(nc)nc.textContent=t;}
+ filt(c.body,c.q,c.f);linkReport();if(kind==='cy'&&!$('pyManual').classList.contains('hidden'))renderManual();}
+function ledDelete(kind,i){const c=LEDCTX[kind],arr=c.arr(),r=arr[i];if(!r)return;
+ if(!confirm('Delete ledger "'+r.name+'"?\n\nIt will be removed from the mapping and from the report totals.'))return;
+ arr.splice(i,1);if(kind==='py'){const k=PYTB.findIndex(x=>x.name===r.name);if(k>=0)PYTB.splice(k,1);}
+ document.querySelectorAll('#'+c.body+' select').forEach(s=>{const j=+s.dataset.idx;if(j===i)s.closest('tr').remove();else if(j>i)s.dataset.idx=j-1;});
+ filt(c.body,c.q,c.f);linkReport();if(kind==='cy'){updateChips();selUpdate();if(!$('pyManual').classList.contains('hidden'))renderManual();}}
+['mappingBody','pyMappingBody'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('.ledbtn[data-lact]');if(!b)return;const s=b.closest('tr').querySelector('select');if(!s)return;
+ const i=+s.dataset.idx,k=id==='mappingBody'?'cy':'py';if(b.dataset.lact==='ren')ledRename(k,i);else ledDelete(k,i);}));
+
+$('netOff').addEventListener('change',e=>{NETOFF=e.target.checked;refresh();});
+document.querySelectorAll('input[name=pyModeR]').forEach(rd=>rd.addEventListener('change',()=>setPyMode(rd.value)));
+$('noTally').addEventListener('change',e=>{NOTALLY=e.target.checked;$('pyRadios').classList.toggle('hidden',NOTALLY);
+ document.querySelectorAll('.cyc').forEach(x=>x.classList.toggle('hidden',!NOTALLY));
+ $('mq').placeholder='Search head...';
+ if(NOTALLY){$('pyAutoMsg').innerHTML='<div class="al ai">Manual mode: enter Current Year and Previous Year amounts head-wise, or click "+ ledger" under a head to add ledger-wise CY/PY amounts (the head total and the Notes schedule are then built automatically). Enter every amount as a positive figure on its natural side (liabilities and income as Cr, assets and expenses as Dr). Include the year\'s profit/(loss) within Reserves &amp; Surplus (or Capital) so the Balance Sheet balances.</div>';
+  $('mappingCard').classList.add('hidden');['schedulesCard','generateCard'].forEach(i=>$(i).classList.remove('hidden'));setPyMode('manual');}
+ else{$('pyAutoMsg').innerHTML='';if(parsedTB.length){refresh();}else{['schedulesCard','generateCard','mappingCard'].forEach(i=>$(i).classList.add('hidden'));setPyMode('open');$('pyManual').classList.add('hidden');$('pyCheck').innerHTML='';}}});
+
+const SCH={company:[['shareCapital','Share Capital'],['reserves','Reserves'],['fa','Fixed Assets (10-col)'],['policies','Accounting Policies']],
+ partnership:[['partners','Partners Capital'],['fa','Fixed Assets (10-col)'],['policies','Accounting Policies']],proprietorship:[['partners','Proprietor Capital'],['fa','Fixed Assets (10-col)'],['policies','Accounting Policies']]};
+document.querySelectorAll('.ecd').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.ecd').forEach(x=>x.classList.remove('selected'));c.classList.add('selected');$('entityType').value=c.dataset.entity;renderSchedules();renderSigs();relabel();}));
+function relabel(){document.querySelectorAll('select option[value]').forEach(o=>{if(o.value)o.textContent=HL(o.value);});if($('manBody'))renderManual();if($('quickHeads').children.length)renderQuick();}
+function renderSchedules(){const defs=SCH[g('entityType')];$('scheduleTabs').innerHTML='';defs.forEach((d,i)=>{const t=document.createElement('div');t.className='stb'+(i?'':' active');t.textContent=d[1];
+ t.onclick=()=>{document.querySelectorAll('.stb').forEach(x=>x.classList.remove('active'));t.classList.add('active');showSch(d[0]);};$('scheduleTabs').appendChild(t);});showSch(defs[0][0]);}
+const fields=l=>'<div class="g2">'+l.map(([k,t])=>`<div class="fg"><label>${t}</label><input type="number" data-k="${k}" value="${S[k]||''}"></div>`).join('')+'</div>';
+function showSch(id){const c=$('scheduleContent');
+ if(id==='policies')c.innerHTML=`<textarea data-k="policies" rows="8" placeholder="1. Basis: Historical cost, accrual basis...">${S.policies||''}</textarea>`;
+ else if(id==='shareCapital'){const R=[['h','Authorised Capital'],['authShares','No. of equity shares authorised'],['authorizedCap','Authorised capital (₹)'],['h','Subscribed & Fully Paid Capital'],['numShares','No. of equity shares issued'],['paidUpEquity','Paid-up equity capital (₹)'],['paidUpPref','Paid-up preference capital (₹)'],['h','Calls Unpaid'],['callsDir','By Directors'],['callsOff','By Officers'],['callsOth','By Others'],['h','Forfeited Shares'],['forf','Forfeited shares (amount originally paid-up)'],['forfLess','Less: Forfeited shares'],['forfAdd','Add: Forfeited shares reissued'],['h','Reconciliation of Equity Shares'],['recOpN','Balance at beginning - No. of shares'],['recOpA','Balance at beginning - Amount'],['recIssN','Add: Shares issued - No. of shares'],['recIssA','Add: Shares issued - Amount'],['recBbN','Less: Bought back / cancelled - No. of shares'],['recBbA','Less: Bought back / cancelled - Amount']];
+  const D=[['dsOptions','Shares reserved for issue under options and contracts / commitments for sale of shares / disinvestment (terms and amounts)'],['dsContract','Last 5 years: shares allotted as fully paid-up pursuant to contract(s) without payment in cash (number and class)'],['dsBonus','Last 5 years: shares allotted as fully paid-up by way of bonus shares (number and class)'],['dsBuyback','Last 5 years: shares bought back (number and class)'],['dsConvert','Terms of securities convertible into equity / preference shares, with earliest date of conversion']];
+  c.innerHTML='<div class="al ai">Schedule III (Companies) - Share Capital note. Enter positive amounts. Total Paid Up Capital = Paid-up capital - Calls unpaid + (Forfeited shares - Less + Add). Leave blank what is not applicable; the note shows only the sections that have figures.</div><div class="fg" style="max-width:260px"><label>Face Value per share (₹)</label><input type="number" data-k="faceValue" value="'+(S.faceValue||'')+'"></div><table class="it"><thead><tr><th>Particulars</th><th style="width:22%">Current Year</th><th style="width:22%">Previous Year</th></tr></thead><tbody>'+
+  R.map(([k,t])=>k==='h'?`<tr><td colspan="3" style="background:#f1f5f9;font-weight:700">${t}</td></tr>`:`<tr><td>${t}</td><td><input type="number" data-k="${k}" value="${S[k]||''}"></td><td><input type="number" data-k="${k}PY" value="${S[k+'PY']||''}"></td></tr>`).join('')+
+  '</tbody></table><div style="margin-top:10px;font-weight:700;font-size:12px;color:#3730a3">Disclosures (leave blank for Nil)</div>'+D.map(([k,t])=>`<div class="fg"><label>${t}</label><input type="text" data-k="${k}" value="${esc(S[k]||'')}"></div>`).join('');}
+ else if(id==='reserves'){const H=['Opening Balance','Addition','Deduction'],th=nm=>`<thead><tr>${nm?'<th rowspan="2">Particulars</th>':''}<th colspan="3" style="text-align:center">Current Year</th><th colspan="3" style="text-align:center">Previous Year</th>${nm?'<th rowspan="2"></th>':''}</tr><tr>${H.concat(H).map(x=>`<th>${x}</th>`).join('')}</tr></thead>`;
+  c.innerHTML=`<div class="al ai">Reserves &amp; Surplus note is shown in Schedule III format (Opening / Addition / Deduction / Closing). <b>Balance in Profit &amp; Loss Account is calculated automatically</b> from the Tally figures, so the total always agrees with the Balance Sheet. Add other reserves (Capital Reserve, Securities Premium, General Reserve, Revaluation Reserve, etc.) below. Enter positive amounts.</div>
+  <div style="font-weight:700;font-size:12px;color:#3730a3;margin:6px 0">Reserves</div><div style="overflow-x:auto"><table class="it" data-tbl="reserves">${th(true)}<tbody></tbody></table></div><button class="btn bp" onclick="addRow('reserves')">+ Add Reserve</button>
+  <div style="font-weight:700;font-size:12px;color:#3730a3;margin:14px 0 6px">Surplus — Balance in Profit &amp; Loss Account (Others, if Any)</div><div style="overflow-x:auto"><table class="it" data-tbl="surplusOth">${th(false)}<tbody></tbody></table></div>`;
+  (S.reserves||[]).forEach(r=>addRow('reserves',r));addRow('surplusOth',(S.surplusOth||[])[0]||{});}
+ else if(id==='partners'){const pr=g('entityType')==='proprietorship',cs=PCOLS(),T=(l,nm)=>`<thead><tr>${nm?`<th>${pr?'Name of Proprietor':'Name of Partner'}</th>`:''}${l.map(x=>`<th>${x[1]}</th>`).join('')}<th></th></tr></thead>`;
+  c.innerHTML=`<div class="al ai">${pr?"Proprietor's Capital Account":"Partners' Capital Account"} — shown as Note 1 in the format Opening / Capital Introduced${pr?'':' / Remuneration / Interest'} / Withdrawal / Profit-Loss / Closing.${pr?'':' Share (%) is taken from the PSR entered in Setup (match the partner name exactly).'} Leave Profit/Loss blank to auto-take ${pr?'the full':'the PSR share of the'} profit from the P&amp;L. Enter Withdrawal as a positive amount.</div><div style="overflow-x:auto"><table class="it" data-tbl="partners">${T(cs,true)}<tbody></tbody></table></div>${pr?'':`<button class="btn bp" onclick="addRow('partners')">+ Add Partner</button>`}<div style="margin:14px 0 6px;font-weight:700;font-size:12px;color:#3730a3">Previous Year — total (all ${pr?'':'partners '}combined)</div><div style="overflow-x:auto"><table class="it" data-tbl="partnersPY">${T(cs,false)}<tbody></tbody></table></div>`;
+  const pa=S.partners||[];(pa.length?pa:[{}]).forEach(r=>addRow('partners',r));addRow('partnersPY',(S.partnersPY||[])[0]||{});}
+ else{const fa=id==='fa';c.innerHTML=`<div style="overflow-x:auto"><table class="it" data-tbl="${id}"><thead><tr>${fa?'<th>Name of Asset</th><th>Opening WDV (Gross)</th><th>(+) Addition</th><th>(-) Deduction</th><th>(-) Depreciation</th><th>(=) Gross Block</th>':'<th>Partner</th><th>Amount</th>'}<th></th></tr></thead><tbody></tbody></table></div><button class="btn bp" onclick="addRow('${id}')">+ Add Row</button>`;(S[id]||[]).forEach(r=>addRow(id,r));}}
+const FAF=['opG','add','ded','dep'];
+const PCOLS=()=>g('entityType')==='proprietorship'?[['open','Opening Balance'],['intro','Capital Introduced'],['wd','Withdrawal'],['pl','Profit/Loss'],['close','Closing Balance']]:[['open','Opening Balance'],['intro','Capital Introduced'],['rem','Remuneration'],['int','Interest'],['wd','Withdrawal'],['pl','Profit/Loss'],['close','Closing Balance']];
+const PROW=(id,d,inp)=>`${id==='partners'?`<td><input data-f="name" value="${esc(d.name||'')}"></td>`:''}${PCOLS().filter(x=>x[0]!=='close').map(x=>inp(x[0])).join('')}<td class="num cC">0</td><td>${id==='partners'&&g('entityType')==='partnership'?`<button class="btn bd" onclick="this.closest('tr').remove();saveRows()">×</button>`:''}</td>`;
+function addRow(id,d){d=d||{};const tb=document.querySelector(`table[data-tbl="${id}"] tbody`),tr=document.createElement('tr'),inp=f=>`<td><input type="number" data-f="${f}" value="${d[f]||''}"></td>`;
+ tr.innerHTML=(id==='reserves'||id==='surplusOth')?`${id==='reserves'?`<td><input data-f="name" value="${esc(d.name||'')}" placeholder="e.g. Capital Reserve"></td>`:''}${['o1','a1','d1','o2','a2','d2'].map(inp).join('')}<td>${id==='reserves'?`<button class="btn bd" onclick="this.closest('tr').remove();saveRows()">×</button>`:''}</td>`:(id==='partners'||id==='partnersPY')?PROW(id,d,inp):id==='fa'?`<td><input data-f="name" value="${d.name||''}"></td>${inp('opG')}${inp('add')}${inp('ded')}${inp('dep')}<td class="num cG">0</td><td><button class="btn bd" onclick="this.closest('tr').remove();saveRows()">×</button></td>`
+ :`<td><input data-f="name" value="${d.name||''}"></td>${inp('amount')}<td><button class="btn bd" onclick="this.closest('tr').remove();saveRows()">×</button></td>`;tb.appendChild(tr);saveRows();}
+function saveRows(){document.querySelectorAll('table[data-tbl]').forEach(t=>{S[t.dataset.tbl]=[...t.querySelectorAll('tbody tr')].map(tr=>{const o={};tr.querySelectorAll('[data-f]').forEach(i=>o[i.dataset.f]=i.value);
+ if(t.dataset.tbl==='fa'){const v=f=>parseFloat(o[f])||0,cG=v('opG')+v('add')-v('ded')-v('dep');tr.querySelector('.cG').textContent=fmt(cG);}
+  if(t.dataset.tbl==='partners'||t.dataset.tbl==='partnersPY'){const v=f=>parseFloat(o[f])||0;tr.querySelector('.cC').textContent=fmt(v('open')+v('intro')+v('rem')+v('int')-v('wd')+v('pl'));}return o;});});}
+$('scheduleContent').addEventListener('input',e=>{const t=e.target;if(t.dataset.k)S[t.dataset.k]=t.value;else if(t.dataset.f)saveRows();});
+const sn=k=>parseFloat(S[k])||0;
+const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+renderHeadMgr();
+const SCDS=[['dsOptions','Shares reserved for issue under options and Contracts/Commitments for the sale of Shares/Disinvestment, including the terms and amounts'],['dsContract','For the period of five years immediately preceding the date as at which the Balance Sheet is prepared: Aggregate number and class of shares allotted as fully paid-up pursuant to contract(s) without payment being received in cash'],['dsBonus','For the period of five years immediately preceding the date as at which the Balance Sheet is prepared: Aggregate number and class of shares allotted as fully paid-up by way of bonus shares'],['dsBuyback','For the period of five years immediately preceding the date as at which the Balance Sheet is prepared: Aggregate number and class of shares bought back'],['dsConvert','Terms of any securities convertible into Equity/Preference shares issued along with the earliest date of conversion in descending order starting from the farthest such date']];
+const nfN=v=>Math.abs(v)<0.005?'0':Number(v).toLocaleString('en-IN',{maximumFractionDigits:0});
+function scModel(){const fv=sn('faceValue'),n=(k,p)=>sn(p?k+'PY':k);
+ const D=p=>{const o={authSh:n('authShares',p),auth:n('authorizedCap',p),sh:n('numShares',p),paidE:n('paidUpEquity',p),paidP:n('paidUpPref',p),dir:n('callsDir',p),off:n('callsOff',p),oth:n('callsOth',p),forf:n('forf',p),fl:n('forfLess',p),fa:n('forfAdd',p),opN:n('recOpN',p),opA:n('recOpA',p),isN:n('recIssN',p),isA:n('recIssA',p),bbN:n('recBbN',p),bbA:n('recBbA',p)};
+  o.paid=r2(o.paidE+o.paidP);o.calls=r2(o.dir+o.off+o.oth);o.total=r2(o.paid-o.calls+o.forf-o.fl+o.fa);o.clN=r2(o.opN+o.isN-o.bbN);o.clA=r2(o.opA+o.isA-o.bbA);return o;};
+ const c=D(0),p=D(1),any=(...ks)=>ks.some(k=>Math.abs(c[k])>0.004||Math.abs(p[k])>0.004),eq=(x,t)=>`Equity Share Capital: ${nfN(x)} shares${fv?' of ₹'+fv+' each':''}`;
+ const rows=[];
+ if(any('auth','authSh')){rows.push({l:'Authorised Capital',cy:c.auth,py:p.auth,b:1});if(any('authSh'))rows.push({l:`Equity Share Capital: ${nfN(c.authSh)} shares (previous year: ${nfN(p.authSh)})${fv?' of ₹'+fv+' each':''}`,cy:c.auth,py:p.auth,ind:1,memo:1});}
+ if(any('paid','sh')){rows.push({l:'Subscribed and Fully Paid Capital',cy:c.paid,py:p.paid,b:1});
+  if(any('paidE','sh'))rows.push({l:`Equity Share Capital: ${nfN(c.sh)} shares (previous year: ${nfN(p.sh)})${fv?' of ₹'+fv+' each':''}`,cy:c.paidE,py:p.paidE,ind:1,memo:1});
+  if(any('paidP'))rows.push({l:'Preference Share Capital',cy:c.paidP,py:p.paidP,ind:1,memo:1});
+  rows.push({l:'Paid Up Capital',cy:c.paid,py:p.paid,b:1});}
+ if(any('calls')){rows.push({l:'Calls Unpaid',cy:c.calls,py:p.calls});rows.push({l:'Less : By Directors',cy:c.dir,py:p.dir,ind:1});rows.push({l:'Less : By Officers',cy:c.off,py:p.off,ind:1});rows.push({l:'Less : By Others',cy:c.oth,py:p.oth,ind:1});}
+ if(any('forf','fl','fa')){rows.push({l:'Forfeited Shares',cy:c.forf,py:p.forf});rows.push({l:'Less : Forfeited Shares',cy:c.fl,py:p.fl,ind:1});rows.push({l:'Add : Forfeited Shares Reissued',cy:c.fa,py:p.fa,ind:1});}
+ if(any('paid','calls','forf','fl','fa'))rows.push({l:'Total Paid Up Capital',cy:c.total,py:p.total,b:1,top:1});
+ const hasRec=any('opN','opA','isN','isA','bbN','bbA');
+ const rec=hasRec?[['Balance at the Beginning of the Year',c.opN,c.opA,p.opN,p.opA],['Add: Shares Issued',c.isN,c.isA,p.isN,p.isA],['Less: Shares Bought Back / Cancelled',c.bbN,c.bbA,p.bbN,p.bbA],['Balance at the End of the Year',c.clN,c.clA,p.clN,p.clA,1]]:[];
+ const ds=SCDS.map(([k,h])=>[h,(S[k]||'').trim()]);
+ return{show:rows.length>0||rec.length>0||ds.some(d=>d[1]),rows,rec,ds,hasAnyFig:rows.length>0||rec.length>0};}
+function scHTML(m,yr,yp){const R=x=>`<tr><td class="ind${x.ind||0}"${x.top?' style="border-top:1px solid #000"':''}>${x.b?'<b>'+esc(x.l)+'</b>':x.memo?'<i>'+esc(x.l)+'</i>':esc(x.l)}</td><td class="num"${x.top?' style="border-top:1px solid #000"':''}>${x.b?'<b>'+fmt(x.cy)+'</b>':fmt(x.cy)}</td><td class="num"${x.top?' style="border-top:1px solid #000"':''}>${x.b?'<b>'+fmt(x.py)+'</b>':fmt(x.py)}</td></tr>`;
+ let h='';if(m.rows.length)h+=`<table class="fs"><thead><tr><th>Particulars</th><th class="num">As at 31 March ${yr}</th><th class="num">As at 31 March ${yp}</th></tr></thead><tbody>${m.rows.map(R).join('')}</tbody></table>`;
+ if(m.rec.length)h+=`<table class="fs" style="margin-top:8px"><thead><tr><th>Reconciliation of Share Capital</th><th class="num" colspan="2">As at 31 March ${yr}</th><th class="num" colspan="2">As at 31 March ${yp}</th></tr><tr><th>Subscribed and Fully Paid Capital (Equity Shares)</th><th class="num">No. of Shares</th><th class="num">Amount</th><th class="num">No. of Shares</th><th class="num">Amount</th></tr></thead><tbody>${m.rec.map(r=>{const b=r[5]?'<b>':'',e=r[5]?'</b>':'';return`<tr><td>${b}${esc(r[0])}${e}</td><td class="num">${b}${nfN(r[1])}${e}</td><td class="num">${b}${fmt(r[2])}${e}</td><td class="num">${b}${nfN(r[3])}${e}</td><td class="num">${b}${fmt(r[4])}${e}</td></tr>`;}).join('')}</tbody></table>`;
+ h+='<div style="margin-top:8px;font-size:11px">'+m.ds.map(d=>`<p style="margin:3px 0">${esc(d[0])}${d[1]?': <b>'+esc(d[1])+'</b>':': Nil'}</p>`).join('')+'</div>';
+ return h;}
+let SIGS=[{name:'',din:'',place:'',psr:''},{name:'',din:'',place:'',psr:''}];
+function renderSigs(){const ent=g('entityType'),co=ent==='company',pt=ent==='partnership',lab=co?'Director':pt?'Partner':'Proprietor';
+ $('sigTitle').textContent=(co?'Directors':pt?'Partners':'Proprietor');
+ $('sigHint').textContent=co?'Enter the name, DIN and place of each director. These appear in the signature block of the Balance Sheet and Statement of Profit and Loss.':pt?'Enter the name, place and Profit Sharing Ratio (PSR %) of each partner. PSR is shown in the Partners Capital note and the Excel Partners sheet.':'Enter the name and place of the proprietor.';
+ $('sigNameH').textContent=lab+' Name';$('sigDinH').style.display=co?'':'none';$('sigPsrH').style.display=pt?'':'none';$('sigAdd').style.display=ent==='proprietorship'?'none':'';$('sigAdd').textContent='+ Add '+lab;
+ if(ent==='proprietorship'&&SIGS.length>1)SIGS=[SIGS[0]];
+ $('sigBody').innerHTML=SIGS.map((x,i)=>`<tr><td><input data-si="${i}" data-sf="name" value="${esc(x.name)}" placeholder="${lab} ${i+1}"></td>${co?`<td><input data-si="${i}" data-sf="din" value="${esc(x.din)}" placeholder="DIN"></td>`:''}<td><input data-si="${i}" data-sf="place" value="${esc(x.place)}" placeholder="Place"></td>${pt?`<td><input type="number" step="0.01" min="0" max="100" data-si="${i}" data-sf="psr" value="${esc(x.psr||'')}" placeholder="e.g. 50"></td>`:''}<td>${SIGS.length>1?`<button class="btn bd" type="button" data-sdel="${i}">×</button>`:''}</td></tr>`).join('');psrTot();}
+function psrTot(){const b=$('sigPsrTot');if(g('entityType')!=='partnership'){b.style.display='none';return;}const t=r2(SIGS.reduce((a,x)=>a+(parseFloat(x.psr)||0),0)),any=SIGS.some(x=>x.psr!=='');b.style.display=any?'':'none';b.className='al '+(Math.abs(t-100)<0.005?'as':'aw');b.textContent='Total PSR: '+t+'%'+(Math.abs(t-100)<0.005?' ✓':' — should total 100%');}
+$('sigBody').addEventListener('input',e=>{const i=e.target.dataset.si;if(i!=null){SIGS[+i][e.target.dataset.sf]=e.target.value;if(e.target.dataset.sf==='psr')psrTot();}});
+$('sigBody').addEventListener('click',e=>{const d=e.target.dataset.sdel;if(d!=null){SIGS.splice(+d,1);renderSigs();}});
+$('sigAdd').onclick=()=>{SIGS.push({name:'',din:'',place:'',psr:''});renderSigs();};
+const sigList=()=>{const a=SIGS.filter(x=>x.name||x.din||x.place);return a;};
+const psrOf=n=>{const k=norm(n);const m=SIGS.find(x=>x.name&&norm(x.name)===k&&x.psr!=='');return m?parseFloat(m.psr)||0:null;};
+
+const PCSS=`
+.paper{font-family:'Times New Roman',Times,serif;font-size:14.5px;color:#1a202c;line-height:1.4}
+.rp.paper{max-width:210mm;margin:0 auto;padding:14mm 12mm;box-shadow:0 0 8px rgba(0,0,0,.15);max-height:none;overflow:visible}
+.pg{padding:4px}
+@media screen{.pg{border-bottom:2px dashed #94a3b8;margin-bottom:24px;padding-bottom:18px}.pg:last-child{border-bottom:0}}
+.hd{text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #1e3a8a}
+.hd .cn{font-size:19px;font-weight:700;text-transform:uppercase;color:#1e3a8a;letter-spacing:.5px}
+.hd .ad{font-size:12.5px;color:#475569}
+.hd .tt{font-size:15.5px;font-weight:700;margin-top:8px;color:#1e3a8a;text-decoration:underline;text-underline-offset:3px}
+.hd .sb{font-size:14px;font-weight:700;color:#334155}
+.hd .am{text-align:right;font-size:12px;font-style:italic;color:#475569}
+table.fs{width:100%;border-collapse:collapse;font-size:13px;margin:5px 0 8px}
+.fs th{border-top:1.5px solid #1e3a8a;border-bottom:1.5px solid #1e3a8a;padding:4px 6px;text-align:left;background:#eff6ff;color:#1e3a8a;font-weight:700}
+.fs td{padding:2.5px 6px;vertical-align:top;border:0}
+.fs .num,.fs th.num{text-align:right;white-space:nowrap}.fs .nt,.fs th.nt{text-align:center;width:44px}
+.fs tr.sec td{font-weight:700;padding-top:7px;color:#1e3a8a}
+.fs tr.sub td{font-weight:700;border-top:1px solid #1e3a8a;background:#f8fafc}
+.fs tr.tot td{font-weight:700;border-top:1.5px solid #1e3a8a;border-bottom:3px double #1e3a8a;background:#eff6ff;color:#1e3a8a}
+.fs td.ind1{padding-left:22px}.fs td.ind2{padding-left:40px}
+.note{margin:12px 0;padding:8px 10px;border-left:3px solid #1e3a8a;background:#fafbfc}
+.note h4{font-size:14.5px;margin:0 0 5px;color:#1e3a8a;page-break-after:avoid}
+.ft{font-size:12.5px;margin-top:10px;font-style:italic;color:#475569;page-break-after:avoid;break-after:avoid}
+.sig-block{page-break-inside:avoid;break-inside:avoid;padding-top:6px;border-top:1px dashed #cbd5e1;margin-top:10px}
+.sg{display:flex;justify-content:space-between;gap:20px;margin-top:12px;font-size:13px;page-break-inside:avoid;break-inside:avoid}
+.sg>div{width:48%;line-height:1.5;page-break-inside:avoid;break-inside:avoid}
+.pol{white-space:pre-line;text-align:justify;color:#334155}
+
+.fs td{color:#000}.fs td.nt{font-weight:700}.fs th{font-size:inherit}.note{font-size:inherit}
+.hd .ad{font-weight:600;color:#1f2937}.ft{font-weight:600;color:#1f2937}.sg{font-weight:600}
+
+.ar{text-align:justify}.ar p{margin:0 0 7px}.ar h5{margin:11px 0 4px;font-size:inherit;font-weight:700;color:#1e3a8a}.ar .cap{font-weight:700;text-decoration:underline;margin:10px 0 4px;color:#1e3a8a}.ar ol{margin:0 0 7px;padding-left:22px}.ar li{margin-bottom:4px}
+`;
+const PRINTCSS=`
+@page{size:A4;margin:0}
+html,body{margin:0;padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.pw{width:100%;border-collapse:collapse;border:0;page-break-after:always;break-after:page}
+table.pw:last-of-type{page-break-after:auto;break-after:auto}
+table.pw>thead>tr>td,table.pw>tfoot>tr>td{height:12mm;padding:0;border:0}
+table.pw>tbody>tr>td{padding:0 14mm;border:0;vertical-align:top}
+.pg{border:0!important;margin:0!important;padding:0!important}
+.pg.one .hd{margin-bottom:6px;padding-bottom:5px}
+.pg.one table.fs{font-size:12.5px;margin:3px 0 4px}
+.pg.one .fs td{padding:1.4px 6px}.pg.one .fs th{padding:3px 6px}
+.pg.one .fs tr.sec td{padding-top:4px}
+.pg.one .sig-block{margin-top:6px}.pg.one .sg{margin-top:8px}
+`;
+document.head.insertAdjacentHTML('beforeend','<style>'+PCSS+'</style>');
+const yEnd=f=>{const p=(f||'').split('-');let y=p[1]||'';if(y.length===2)y=(p[0]||'').slice(0,2)+y;return y;};
+const fd=d=>d?d.split('-').reverse().join('-'):'';
+function ledgersTable(l,side,pl,pyT,hs,cyT){l=l||[];const mode=g('pyMode');if(!l.length&&pyT===undefined)return'';const yr=yEnd(g('fy')),yp=yEnd(g('fyPrev'));
+ const ml=(mode==='manual'||(mode==='open'&&pl))?(hs||[]).flatMap(h=>MANL[h]||[]):[],mUse=ml.some(e=>parseFloat(e.amt));
+ if(NOTALLY){const es=(hs||[]).flatMap(h=>MANL[h]||[]).filter(e=>e.name&&(parseFloat(e.cy)||parseFloat(e.amt)));
+  if(es.length){let t2=`<table class="fs"><thead><tr><th>Particulars</th><th class="num">As at 31 March ${yr}</th><th class="num">As at 31 March ${yp}</th></tr></thead><tbody>`,c2=0,p2=0;
+   es.forEach(e=>{const a=r2(parseFloat(e.cy)||0),b=r2(parseFloat(e.amt)||0);c2+=a;p2+=b;t2+=`<tr><td>${esc(e.name)}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td></tr>`;});
+   const dc=r2((cyT||0)-c2),dp=r2((pyT||0)-p2);
+   if(Math.abs(dc)>=0.005||Math.abs(dp)>=0.005){t2+=`<tr><td>Other / unallocated</td><td class="num">${fmt(dc)}</td><td class="num">${fmt(dp)}</td></tr>`;c2+=dc;p2+=dp;}
+   return t2+`<tr class="tot"><td>Total</td><td class="num">${fmt(r2(c2))}</td><td class="num">${fmt(r2(p2))}</td></tr></tbody></table>`;}}
+ let t=`<table class="fs"><thead><tr><th>Particulars</th><th class="num">As at 31 March ${yr}</th><th class="num">As at 31 March ${yp}</th></tr></thead><tbody>`,tc=0,tp=0;
+ l.forEach(x=>{const cy=r2(side==='dr'?x.dr-x.cr:x.cr-x.dr);let py=0;
+  if(mode==='upload')py=r2(side==='dr'?(x.pd||0)-(x.pc||0):(x.pc||0)-(x.pd||0));else if(mode==='open'&&!pl)py=r2(side==='dr'?x.od-x.oc:x.oc-x.od);
+  else if(mUse){const e=ml.find(q=>!q.extra&&q.name===x.name);py=e?r2(parseFloat(e.amt)||0):0;}
+  if(Math.abs(cy)<0.005&&Math.abs(py)<0.005)return;
+  t+=`<tr><td>${x.name.replace(/ ->.*$/,'')}</td><td class="num">${fmt(cy)}</td><td class="num">${fmt(py)}</td></tr>`;tc+=cy;tp+=py;});
+ if(mUse)ml.filter(e=>e.extra&&e.name&&parseFloat(e.amt)).forEach(e=>{const py=r2(parseFloat(e.amt));
+  t+=`<tr><td>${esc(e.name)}</td><td class="num">${fmt(0)}</td><td class="num">${fmt(py)}</td></tr>`;tp+=py;});
+ if((mode==='manual'||(mode==='open'&&pl))&&pyT!==undefined&&!mUse)tp=pyT;
+ if(NOTALLY&&cyT!==undefined)tc=cyT;
+ return t+`<tr class="tot"><td>Total</td><td class="num">${fmt(r2(tc))}</td><td class="num">${fmt(r2(tp))}</td></tr></tbody></table>`;}
+const sd=h=>(LIAB.includes(h)||['Revenue from Operations','Other Income','Less: Closing Stock'].includes(h))?'cr':'dr';
+function build(m){const ent=g('entityType'),client=g('clientName'),yr=yEnd(g('fy')),yp=yEnd(g('fyPrev')),mode=g('pyMode');
+ const V=(h,s)=>val(m,h,s),L={},A={},P={};LIAB.forEach(h=>L[h]=V(h,'cr'));ASSET.forEach(h=>A[h]=V(h,'dr'));
+ ['Revenue from Operations','Other Income'].forEach(h=>P[h]=V(h,'cr'));HEADS.pl.slice(2).forEach(h=>P[h]=V(h,h==='Less: Closing Stock'?'cr':'dr'));
+ const exp=['Cost of Materials Consumed','Opening Stock','Purchases of Stock-in-Trade','Less: Closing Stock'].concat(HEADS.pl.slice(6));
+ const order=HEADS.bs.concat(['Revenue from Operations','Other Income'],exp),tk=h=>h.startsWith('Trade Payables')?'Trade Payables':h;
+ const hasD=h=>!!m[h]||((mode==='manual'||(mode==='open'&&PLH.has(h)))&&Math.abs(parseFloat(MAN[h])||0)>0.004)||(NOTALLY&&Math.abs(parseFloat(MANCY[h])||0)>0.004);
+ const NN={};let n=0;order.forEach(h=>{if(hasD(h)&&!NN[tk(h)])NN[tk(h)]=++n;});const nt=h=>NN[tk(h)]||'';
+ const sm=(o,hs,k)=>hs.reduce((a,h)=>a+o[h][k],0),tL=k=>r2(sm(L,LIAB,k)),tA=k=>r2(sm(A,ASSET,k));
+ const tI=k=>r2(P['Revenue from Operations'][k]+P['Other Income'][k]),tE=k=>r2(sm(P,exp.filter(h=>h!=='Less: Closing Stock'),k)-P['Less: Closing Stock'][k]),pbt=r2(tI('cy')-tE('cy')),pbtP=r2(tI('py')-tE('py'));
+ const row=(l,a,b,t,ind,note)=>`<tr class="${t||''}"><td class="ind${ind||0}">${l}</td><td class="nt">${note||''}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td></tr>`;
+ const r=(lab,h,o,ind)=>(Math.abs(o[h].cy)<0.005&&Math.abs(o[h].py)<0.005)?'':row(lab,o[h].cy,o[h].py,'',ind,nt(h)),sec=t=>`<tr class="sec"><td colspan="4">${t}</td></tr>`;
+ const HD=`<tr><th>Particulars</th><th class="nt">Note No.</th><th class="num">As at 31 March ${yr}</th><th class="num">As at 31 March ${yp}</th></tr>`;
+ const ids=[g('cin')&&'CIN: '+g('cin'),g('pan')&&'PAN: '+g('pan'),g('gstin')&&'GSTIN: '+g('gstin')].filter(Boolean).join(' &nbsp;|&nbsp; ');
+ const hdB=(title,sub)=>`<div class="hd">${client?`<div class="cn">${esc(client)}</div>`:''}${g('address')?`<div class="ad">${esc(g('address'))}</div>`:''}${ids?`<div class="ad">${ids}</div>`:''}<div class="tt">${title}</div><div class="sb">${sub}</div><div class="am">(Amount in ₹${unitTxt(UNIT)})</div></div>`;
+ const sgc=(x,role,co)=>`<div style="break-inside:avoid;page-break-inside:avoid"><div style="height:20px"></div>${x.name?`<b>${esc(x.name)}</b><br>`:''}${role}${co&&x.din?`<br>DIN: ${esc(x.din)}`:''}${x.place?`<br>Place: ${esc(x.place)}`:''}</div>`;
+ const sgGrid=(role,co)=>!sigList().length?'':`<div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px">${sigList().map(x=>sgc(x,role,co)).join('')}</div>`;
+ const sigLeft = ent==='company'
+  ? `<b style="color:#1e3a8a">For and on behalf of the Board of Directors</b>${sgGrid('Director',true)}`
+  : ent==='partnership'
+    ? `${client?`<b style="color:#1e3a8a">For ${esc(client)}</b>`:''}${sgGrid('Partner',false)}`
+    : `${client?`<b style="color:#1e3a8a">For ${esc(client)}</b>`:''}${sgGrid('Proprietor',false)}`;
+ const sigRight = [g('auditorFirm')&&`For <b style="color:#1e3a8a">${esc(g('auditorFirm'))}</b>`,'Chartered Accountants',g('frn')&&`Firm Reg. No.: ${esc(g('frn'))}`,'<br><br>',g('auditorName')&&esc(g('auditorName')),g('auditorName')&&(g('auditorDesig')||'Partner'),g('membershipNo')&&`Membership No.: ${esc(g('membershipNo'))}`,g('udin')&&`UDIN: ${esc(g('udin'))}`].filter(Boolean).join('<br>').replace(/<br><br><br>/g,'<br><br>');
+ const pd=[g('place')&&`Place: ${esc(g('place'))}`,g('reportDate')&&`Date: ${fd(g('reportDate'))}`].filter(Boolean).join('<br>');
+ const sg = `<div class="sig-block">
+<div class="ft">The accompanying notes form an integral part of the financial statements.</div>
+<div class="sg">
+  <div>${sigLeft}${pd?'<br><br>'+pd:''}</div>
+  <div>${sigRight}${pd?'<br><br>'+pd:''}</div>
+</div>
+</div>`;
+ const Ln=(l,h,ind)=>({t:'l',l,hs:[h],ind:ind==null?1:ind,note:h}),Ag=(l,hs)=>({t:'l',l,hs,ind:1,note:''});
+ let spec;
+ if(ent==='company'){spec=[{t:'s',l:'I. EQUITY AND LIABILITIES'},{t:'s',l:"1. Shareholders' Funds"},Ln('(a) Share Capital','Share Capital'),Ln('(b) Reserves and Surplus','Reserves & Surplus'),
+  {t:'s',l:'2. Non-Current Liabilities'},Ln('(a) Long-term Borrowings - Secured','Secured Loans'),Ln('(b) Long-term Borrowings - Unsecured','Unsecured Loans'),Ln('(c) Long-term Borrowings - Others','Long Term Borrowings'),Ln('(d) Deferred Tax Liabilities (Net)','Deferred Tax Liabilities'),Ln('(e) Other Long-term Liabilities','Other Long Term Liabilities'),Ln('(f) Long-term Provisions','Long-term Provisions'),
+  {t:'s',l:'3. Current Liabilities'},Ln('(a) Short-term Borrowings','Short Term Borrowings'),
+  {t:'l',l:'(b) Trade Payables',hs:['Trade Payables (MSME)','Trade Payables (Others)'],ind:1,note:'Trade Payables (Others)'},
+  {...Ln('(A) Total outstanding dues of micro and small enterprises','Trade Payables (MSME)',2),sub:1,note:''},{...Ln('(B) Total outstanding dues of creditors other than micro and small enterprises','Trade Payables (Others)',2),sub:1,note:''},
+  Ln('(c) Other Current Liabilities','Other Current Liabilities'),Ln('(d) Short-term Provisions','Short-term Provisions'),{t:'t',l:'TOTAL',g:'L'},
+  {t:'s',l:'II. ASSETS'},{t:'s',l:'1. Non-Current Assets'},Ln('(a) Property, Plant and Equipment','Property, Plant & Equipment'),Ln('(b) Intangible Assets','Intangible Assets'),Ln('(c) Capital Work-in-Progress','Capital Work-In-Progress'),Ln('(d) Non-Current Investments','Non-Current Investments'),Ln('(e) Deferred Tax Assets (Net)','Deferred Tax Assets'),Ln('(f) Long-term Loans and Advances','Long Term Loans & Advances'),Ln('(g) Other Non-Current Assets','Other Non-Current Assets'),
+  {t:'s',l:'2. Current Assets'},Ln('(a) Current Investments','Current Investments'),Ln('(b) Inventories','Inventories'),Ln('(c) Trade Receivables','Trade Receivables'),Ln('(d) Cash and Cash Equivalents','Cash and Cash Equivalents'),Ln('(e) Short-term Loans and Advances','Short Term Loans & Advances'),Ln('(f) Other Current Assets','Other Current Assets'),{t:'t',l:'TOTAL',g:'A'}];}
+ else{spec=[{t:'s',l:'LIABILITIES'},Ln(HL('Share Capital'),'Share Capital'),Ln(HL('Reserves & Surplus')+' (incl. profit for the year)','Reserves & Surplus'),
+  Ln('Secured Loans','Secured Loans'),Ln('Unsecured Loans','Unsecured Loans'),Ag('Other Borrowings & Liabilities',['Long Term Borrowings','Short Term Borrowings','Other Long Term Liabilities','Deferred Tax Liabilities']),Ag('Trade Payables',['Trade Payables (MSME)','Trade Payables (Others)']),Ln('Other Current Liabilities','Other Current Liabilities'),Ln('Short-term Provisions','Short-term Provisions'),Ln('Long-term Provisions','Long-term Provisions'),{t:'t',l:'TOTAL',g:'L'},
+  {t:'s',l:'ASSETS'},Ag('Fixed Assets',['Property, Plant & Equipment','Intangible Assets','Capital Work-In-Progress']),Ag('Investments',['Non-Current Investments','Current Investments']),Ln('Inventories (Closing Stock)','Inventories'),Ln('Trade Receivables','Trade Receivables'),Ln('Cash and Cash Equivalents','Cash and Cash Equivalents'),
+  Ag('Loans, Advances & Other Assets',['Deferred Tax Assets','Long Term Loans & Advances','Other Non-Current Assets','Short Term Loans & Advances','Other Current Assets']),{t:'t',l:'TOTAL',g:'A'}];}
+ spec.forEach(it=>{if(it.t==='l')it.g=LIAB.includes(it.hs[0])?'L':'A';});
+ const sumV=(it,k)=>r2(it.hs.reduce((a,h)=>a+(L[h]||A[h])[k],0));
+ const lvl0=t=>/^[IV]+\.|^[A-Z]+$/.test(t);
+ spec.forEach(it=>{if(it.t==='l')it.vis=Math.abs(sumV(it,'cy'))>=0.005||Math.abs(sumV(it,'py'))>=0.005;});
+ spec.forEach((it,i)=>{if(it.t==='t'){it.vis=true;return;}if(it.t!=='s')return;const l0=lvl0(it.l);let any=false;
+  for(let j=i+1;j<spec.length;j++){const q=spec[j];if(q.t==='t')break;if(q.t==='s'){if(!l0||lvl0(q.l))break;continue;}if(q.vis){any=true;break;}}it.vis=any;});
+ const body=spec.filter(it=>it.vis).map(it=>it.t==='s'?sec(it.l):it.t==='t'?row(it.l,it.g==='L'?tL('cy'):tA('cy'),it.g==='L'?tL('py'):tA('py'),'tot'):row(it.l,sumV(it,'cy'),sumV(it,'py'),'',it.ind,it.note?nt(it.note):'')).join('');
+ const PH=`<tr><th>Particulars</th><th class="nt">Note No.</th><th class="num">For the year ended 31 March ${yr}</th><th class="num">For the year ended 31 March ${yp}</th></tr>`;
+ const plBody=r('I. Revenue from Operations','Revenue from Operations',P,0)+r('II. Other Income','Other Income',P,0)+row('III. Total Income (I + II)',tI('cy'),tI('py'),'sub')+sec('IV. Expenses')+exp.map(h=>r(HL(h),h,P,1)).join('')+row('Total Expenses',tE('cy'),tE('py'),'sub')+row('V. Profit / (Loss) before tax (III - IV)',pbt,pbtP,'')+row('VI. Profit / (Loss) for the year',pbt,pbtP,'tot');
+ const plTitle=ent==='company'?'STATEMENT OF PROFIT AND LOSS':'PROFIT AND LOSS ACCOUNT';
+ const bs=`<div class="pg one">${hdB('BALANCE SHEET','as at 31 March '+yr)}<table class="fs">${HD}${body}</table>${sg}</div>`;
+ const pl=`<div class="pg one">${hdB(plTitle,'for the year ended 31 March '+yr)}<table class="fs">${PH}${plBody}</table>${sg}</div>`;
+ const titles={'Less: Closing Stock':'Closing Stock (reduced from cost of goods)','Revenue from Operations':'Revenue from Operations'};
+ if(ent!=='company'){titles['Share Capital']=HL('Share Capital');titles['Reserves & Surplus']=HL('Reserves & Surplus');}
+ const kv=pairs=>{const rs=pairs.filter(q=>q[1]);return rs.length?`<table class="fs"><tbody>${rs.map(q=>`<tr><td>${q[0]}</td><td class="num">${q[2]?q[1]:fmt(q[1])}</td></tr>`).join('')}</tbody></table>`:'';};
+ const isP=ent==='partnership',isPr=ent==='proprietorship';let capHTML='',capM=null;
+ if(isP||isPr){const nz=['open','intro','rem','int','wd','pl'],rowsIn=(S.partners||[]).filter(x=>(x.name||'').trim()||nz.some(f=>parseFloat(x[f])));
+  if(rowsIn.length){const v=(o,f)=>parseFloat(o[f])||0,cols=PCOLS();
+   const rows=(isPr?rowsIn.slice(0,1):rowsIn).map(x=>{const sh=isPr?100:psrOf(x.name),o={name:x.name||(isPr?client:''),sh,open:v(x,'open'),intro:v(x,'intro'),rem:isPr?0:v(x,'rem'),int:isPr?0:v(x,'int'),wd:v(x,'wd')};
+    o.pl=(x.pl===''||x.pl==null)?r2(pbt*(sh||0)/100):v(x,'pl');o.close=r2(o.open+o.intro+o.rem+o.int-o.wd+o.pl);return o;});
+   const tot=f=>r2(rows.reduce((a,x)=>a+x[f],0)),cy={};['open','intro','rem','int','wd','pl','close'].forEach(f=>cy[f]=tot(f));
+   const pS=(S.partnersPY||[])[0]||{},py={open:v(pS,'open'),intro:v(pS,'intro'),rem:isPr?0:v(pS,'rem'),int:isPr?0:v(pS,'int'),wd:v(pS,'wd'),pl:v(pS,'pl')};py.close=r2(py.open+py.intro+py.rem+py.int-py.wd+py.pl);
+   const shT=isP?r2(rows.reduce((a,x)=>a+(x.sh||0),0)):100,fs=n=>n==null?'-':r2(n)+'';
+   const lab=isPr?'Name of Proprietor':'Name of Partner',span=isP?' colspan="2"':'',pyc=(n,c)=>(n||c==='open'||c==='close')?fmt(n):'';
+   capHTML=`<table class="fs" style="font-size:11.5px"><thead><tr><th>${lab}</th>${isP?'<th class="num">Share (%)</th>':''}${cols.map(c=>`<th class="num">${c[1]}</th>`).join('')}</tr></thead><tbody>`+
+    rows.map(o=>`<tr><td>${esc(o.name)}</td>${isP?`<td class="num">${fs(o.sh)}</td>`:''}${cols.map(c=>`<td class="num">${fmt(o[c[0]])}</td>`).join('')}</tr>`).join('')+
+    `<tr class="tot"><td${span}>Current Year</td>${cols.map(c=>`<td class="num">${fmt(cy[c[0]])}</td>`).join('')}</tr><tr class="tot"><td${span}>Previous Year</td>${cols.map(c=>`<td class="num">${pyc(py[c[0]],c[0])}</td>`).join('')}</tr></tbody></table>`+(isP&&Math.abs(shT-100)>0.005?`<div style="font-size:11px;color:#b45309;margin-top:4px">Note: total of Share (%) is ${r2(shT)}%.</div>`:'');
+   capM={isP,cols,rows,cy,py};}}
+ let resHTML='',resM=null;
+ if(ent==='company'&&L['Reserves & Surplus']){const RS=L['Reserves & Surplus'],totC=RS.cy,totP=RS.py,v=(o,f)=>parseFloat(o[f])||0;
+  const rr=(S.reserves||[]).filter(x=>(x.name||'').trim()||['o1','a1','d1','o2','a2','d2'].some(f=>v(x,f))).map(x=>({name:x.name||'Reserve',o1:v(x,'o1'),a1:v(x,'a1'),d1:v(x,'d1'),o2:v(x,'o2'),a2:v(x,'a2'),d2:v(x,'d2')}));
+  rr.forEach(x=>{x.c1=r2(x.o1+x.a1-x.d1);x.c2=r2(x.o2+x.a2-x.d2);});
+  const so=(S.surplusOth||[])[0]||{},oth={name:'Balance in Profit & Loss Account (Others, if Any)',o1:v(so,'o1'),a1:v(so,'a1'),d1:v(so,'d1'),o2:v(so,'o2'),a2:v(so,'a2'),d2:v(so,'d2')};oth.c1=r2(oth.o1+oth.a1-oth.d1);oth.c2=r2(oth.o2+oth.a2-oth.d2);
+  const sum=(a,f)=>r2(a.reduce((q,x)=>q+x[f],0));
+  /* P&L balance = total per Balance Sheet less other reserves; movement derived so that Opening + Addition - Deduction = Closing */
+  const pl={name:'Balance in Profit & Loss Account'};pl.c1=r2(totC-sum(rr,'c1')-oth.c1);pl.c2=r2(totP-sum(rr,'c2')-oth.c2);
+  pl.o2=0;pl.a2=Math.max(pbtP,0);pl.d2=Math.max(-pbtP,0);pl.o2=r2(pl.c2-pl.a2+pl.d2);
+  pl.o1=pl.c2;pl.a1=Math.max(pbt,0);pl.d1=Math.max(-pbt,0);{const df=r2(pl.c1-(pl.o1+pl.a1-pl.d1));if(df>0)pl.a1=r2(pl.a1+df);else pl.d1=r2(pl.d1-df);}
+  const sur=[pl,oth],tot=f=>r2(sum(sur,f)),fm=n=>fmt(n);
+  const H1='<th class="num">Opening Balance</th><th class="num">Addition</th><th class="num">Deduction</th><th class="num">Closing Balance</th>';
+  const head=`<thead><tr><th rowspan="2">Particulars</th><th colspan="4" style="text-align:center">As at 31 March ${yr}</th><th colspan="4" style="text-align:center">As at 31 March ${yp}</th></tr><tr>${H1}${H1}</tr></thead>`;
+  const row=(x,b)=>`<tr${b?' class="tot"':''}><td>${esc(x.name)}</td>${['o1','a1','d1','c1','o2','a2','d2','c2'].map(f=>`<td class="num">${fm(x[f])}</td>`).join('')}</tr>`;
+  const tr=(lab,a)=>({name:lab,o1:sum(a,'o1'),a1:sum(a,'a1'),d1:sum(a,'d1'),c1:sum(a,'c1'),o2:sum(a,'o2'),a2:sum(a,'a2'),d2:sum(a,'d2'),c2:sum(a,'c2')});
+  resHTML=`<div style="font-size:11px">`+(rr.length?`<div style="font-weight:700;margin:6px 0 3px">Reserves</div><table class="fs" style="font-size:10.5px">${head}<tbody>${rr.map(x=>row(x)).join('')}${row(tr('Total',rr),1)}</tbody></table>`:'')+
+   `<div style="font-weight:700;margin:10px 0 3px">Surplus</div><table class="fs" style="font-size:10.5px">${head}<tbody>${sur.map(x=>row(x)).join('')}${row(tr('Total',sur),1)}</tbody></table>`+
+   `<table class="fs" style="font-size:11px;margin-top:8px"><tbody><tr class="tot"><td>TOTAL RESERVES AND SURPLUS</td><td class="num">${fm(totC)}</td><td class="num">${fm(totP)}</td></tr></tbody></table></div>`;
+  resM={rr,sur,head:[yr,yp],totC,totP,tot:{r:tr('Total',rr),s:tr('Total',sur)}};}
+ const SCM=scModel(),extra={'Share Capital':(ent==='company'&&SCM.show)?scHTML(SCM,yr,yp):'',
+  'Reserves & Surplus':''};
+ let nh='';const done=new Set(),noteDefs=[];
+ order.forEach(h=>{const k=tk(h);if(done.has(k)||!NN[k])return;done.add(k);
+  const hs=k==='Trade Payables'?['Trade Payables (MSME)','Trade Payables (Others)']:[h],led=hs.flatMap(x=>m[x]?.ledgers||[]),side=k==='Trade Payables'?'cr':sd(h),pl=k!=='Trade Payables'&&PLH.has(h);
+  const X=x=>L[x]||A[x]||P[x],pyT=(mode==='manual'||(mode==='open'&&pl))?r2(hs.reduce((a,x)=>a+X(x).py,0)):undefined;
+  noteDefs.push({k,h,hs,led,side,pl,pyT,title:HNAME[k]||titles[k]||k});
+  const cyT=NOTALLY?r2(hs.reduce((a,x)=>a+X(x).cy,0)):undefined;
+  nh+=`<div class="note"><h4>Note ${NN[k]}: ${HNAME[k]||titles[k]||k}</h4>${(k==='Share Capital'&&capHTML)?capHTML:(k==='Reserves & Surplus'&&resHTML)?resHTML:ledgersTable(led,side,pl,pyT,hs,cyT)+(extra[k]||'')}</div>`;});
+ const fa=(S.fa||[]).length?`<div class="note"><h4>Fixed Assets (PPE / Intangible / CWIP) — Movement Schedule</h4><table class="fs" style="font-size:12.5px"><tr><th>Name of Asset</th><th class="num">Opening WDV (Gross)</th><th class="num">(+) Addition</th><th class="num">(-) Deduction</th><th class="num">(-) Depreciation</th><th class="num">(=) Gross Block</th></tr>`+(()=>{const T=[0,0,0,0,0];let rows=S.fa.map(x=>{const v=f=>parseFloat(x[f])||0,c=v('opG')+v('add')-v('ded')-v('dep'),q=[v('opG'),v('add'),v('ded'),v('dep'),c];q.forEach((n,i)=>T[i]+=n);
+   return`<tr><td>${esc(x.name||'')}</td>${q.map(n=>`<td class="num">${fmt(n)}</td>`).join('')}</tr>`;}).join('');
+  return rows+`<tr class="tot"><td>Total</td>${T.map(n=>`<td class="num">${fmt(r2(n))}</td>`).join('')}</tr>`;})()+'</table></div>':'';
+ const pt='';
+ const sch=(nh||fa||pt)?`<div class="pg">${hdB('NOTES TO ACCOUNTS','forming part of the Financial Statements as at '+yr)}${nh}${fa}${pt}</div>`:'';
+ const polT=(S.policies||'').trim(),invCy=A['Inventories'].cy;
+ const notes=(polT||invCy)?`<div class="pg">${hdB('SIGNIFICANT ACCOUNTING POLICIES','and other notes to the Financial Statements')}${polT?`<div class="pol">${polT.replace(/</g,'&lt;')}</div>`:''}${invCy?`<div class="note"><h4>Inventories</h4><p>Closing stock as valued and certified by management: ₹ ${fmt(invCy)}</p></div>`:''}${sg}</div>`:'';
+ return{bs,pl,sch,notes,model:{unit:UNIT,sc:(ent==='company'&&SCM.show)?SCM:null,ent,client,yr,yp,spec,L,A,P,NN,tk,noteDefs,exp,cap:capM,res:resM,extra:{sc:[['Authorised Capital',sn('authorizedCap')],['Issued, Subscribed & Paid-up Equity',sn('paidUpEquity')],['Paid-up Preference',sn('paidUpPref')],['Face Value per share (₹)',sn('faceValue')],['Number of shares',sn('numShares')]],rs:[['Free Reserves',sn('freeReserves')],['Revaluation Reserve',sn('revalReserve')],['Capital Reserve',sn('capReserve')],['Other Reserves',sn('otherReserves')]],showSC:!!extra['Share Capital'],showRS:!!extra['Reserves & Surplus']},
+  tot:{Lcy:tL('cy'),Lpy:tL('py'),Acy:tA('cy'),Apy:tA('py'),Icy:tI('cy'),Ipy:tI('py'),Ecy:tE('cy'),Epy:tE('py'),pbt,pbtP}}};}
+
+function audMissing(){const need=[['clientName','Client Name'],['fy','Current FY'],['auditorFirm','Auditor Firm'],['frn','FRN'],['auditorName','Auditor Name'],['membershipNo','Membership No.'],['udin','UDIN'],['place','Place'],['reportDate','Date']];return need.filter(x=>!g(x[0]).trim()).map(x=>x[1]);}
+function audAuto(){const M=REPORT&&REPORT.model;if(!M)return null;const v=(o,h)=>((o[h]||{}).cy)||0,L=M.L||{},P=M.P||{};
+ const capRes=r2(v(L,'Share Capital')+v(L,'Reserves & Surplus')),borrow=r2(['Long Term Borrowings','Secured Loans','Unsecured Loans','Short Term Borrowings'].reduce((s,h)=>s+v(L,h),0)),rev=r2(v(P,'Revenue from Operations')+v(P,'Other Income'));
+ const priv=g('entityType')==='company'&&$('audCoType').value==='private';
+ return{capRes,borrow,rev,caroNA:priv&&capRes<=1e7&&borrow<=1e7&&rev<=1e8,ifcNA:priv&&rev<5e8&&borrow<2.5e8};}
+function audRepHTML(){
+ const ent=g('entityType'),co=ent==='company',yr=yEnd(g('fy')),ye=yr?'31 March '+yr:'',at=ye?' as at '+ye:'',A=audAuto()||{},pv=k=>g(k).trim()?esc(g(k).trim()):'';
+ const nm=pv('clientName'),cE=nm?`<b>${nm}</b>`:'';
+ const who=co?'the Company':ent==='partnership'?'the Firm':'the Proprietorship',W=who.charAt(0).toUpperCase()+who.slice(1);
+ const addr=co?'To the Members of':ent==='partnership'?'To the Partners of':'To the Proprietor of';
+ const cfs=$('audCfs').value==='yes',coT=$('audCoType').value,listed=co&&coT==='listed',pub=co&&coT!=='private';
+ const pbt=REPORT&&REPORT.model?REPORT.model.tot.pbt:0,pl=pbt<0?'loss':'profit';
+ const caro=co&&($('audCaro').value==='yes'||($('audCaro').value==='auto'&&!A.caroNA)),ifc=co&&($('audIfc').value==='yes'||($('audIfc').value==='auto'&&!A.ifcNA));
+ const anx=[];if(caro)anx.push('CARO');if(ifc)anx.push('IFC');const AL=k=>'Annexure '+String.fromCharCode(65+anx.indexOf(k));
+ const FS=`Balance Sheet${at}, the ${co?'Statement of Profit and Loss':'Profit and Loss Account'}${cfs?', the Statement of Cash Flows':''} for the year then ended, and notes to the financial statements, including a summary of significant accounting policies and other explanatory information (hereinafter referred to as "the financial statements")`;
+ let t=`<div class="pg ar"><div class="hd"><div class="tt">INDEPENDENT AUDITOR'S REPORT</div></div>
+<p><b>${addr}${nm?'':' '+(co?'the Company':ent==='partnership'?'the Firm':'the Proprietorship')}</b> ${cE}</p>
+<div class="cap">Report on the Audit of the Financial Statements</div>
+<h5>Opinion</h5>
+<p>We have audited the accompanying financial statements of ${nm?cE+' ("'+who+'")':who}, which comprise the ${FS}.</p>
+<p>In our opinion and to the best of our information and according to the explanations given to us, the aforesaid financial statements ${co?'give the information required by the Companies Act, 2013 ("the Act") in the manner so required and ':''}give a true and fair view in conformity with the accounting principles generally accepted in India${co?', including the Accounting Standards specified under section 133 of the Act':''}, of the state of affairs of ${who}${at}, and its ${pl} ${cfs?'and its cash flows ':''}for the year ended on that date.</p>
+<h5>Basis for Opinion</h5>
+<p>We conducted our audit in accordance with the Standards on Auditing ${co?'(SAs) specified under section 143(10) of the Act':'(SAs) issued by the Institute of Chartered Accountants of India (ICAI)'}. Our responsibilities under those Standards are further described in the Auditor's Responsibilities for the Audit of the Financial Statements section of our report. We are independent of ${who} in accordance with the Code of Ethics issued by the ICAI together with the ethical requirements that are relevant to our audit of the financial statements${co?' under the provisions of the Act and the Rules made thereunder':''}, and we have fulfilled our other ethical responsibilities in accordance with these requirements and the ICAI's Code of Ethics. We believe that the audit evidence we have obtained is sufficient and appropriate to provide a basis for our opinion.</p>`;
+ if(g('audEom').trim()||$('audEom').value.trim())t+=`<h5>Emphasis of Matter</h5><p>${esc($('audEom').value.trim())}</p>`;
+  t+=`<h5>Information Other than the Financial Statements and Auditor's Report Thereon</h5>
+<p>${co?"The Company's Board of Directors is responsible for the other information. The other information comprises the information included in the Board's Report including Annexures to the Board's Report, but does not include the financial statements and our auditor's report thereon. ":"Management is responsible for the other information, if any. "}Our opinion on the financial statements does not cover the other information and we do not express any form of assurance conclusion thereon. In connection with our audit of the financial statements, our responsibility is to read the other information and, in doing so, consider whether the other information is materially inconsistent with the financial statements or our knowledge obtained during the course of our audit or otherwise appears to be materially misstated. If, based on the work we have performed, we conclude that there is a material misstatement of this other information, we are required to report that fact. We have nothing to report in this regard.</p>
+<h5>Responsibilities of Management${co?' and Those Charged with Governance':''} for the Financial Statements</h5>
+<p>${co?"The Company's Board of Directors is":"Management is"} responsible for the matters stated in ${co?'section 134(5) of the Act':'the preparation of the financial statements'} with respect to the preparation of these financial statements that give a true and fair view of the financial position${cfs?', financial performance and cash flows':' and financial performance'} of ${who} in accordance with the accounting principles generally accepted in India${co?', including the Accounting Standards specified under section 133 of the Act':''}. This responsibility also includes maintenance of adequate accounting records ${co?'in accordance with the provisions of the Act ':''}for safeguarding the assets and for preventing and detecting frauds and other irregularities; selection and application of appropriate accounting policies; making judgements and estimates that are reasonable and prudent; and the design, implementation and maintenance of adequate internal financial controls that were operating effectively for ensuring the accuracy and completeness of the accounting records, relevant to the preparation and presentation of the financial statements that give a true and fair view and are free from material misstatement, whether due to fraud or error.</p>
+<p>In preparing the financial statements, ${co?'the Board of Directors is':'management is'} responsible for assessing ${who}'s ability to continue as a going concern, disclosing, as applicable, matters related to going concern and using the going concern basis of accounting unless ${co?'the Board of Directors either intends':'management either intends'} to liquidate ${who} or to cease operations, or has no realistic alternative but to do so.${co?" The Board of Directors is also responsible for overseeing the Company's financial reporting process.":''}</p>
+<h5>Auditor's Responsibilities for the Audit of the Financial Statements</h5>
+<p>Our objectives are to obtain reasonable assurance about whether the financial statements as a whole are free from material misstatement, whether due to fraud or error, and to issue an auditor's report that includes our opinion. Reasonable assurance is a high level of assurance, but is not a guarantee that an audit conducted in accordance with SAs will always detect a material misstatement when it exists. Misstatements can arise from fraud or error and are considered material if, individually or in the aggregate, they could reasonably be expected to influence the economic decisions of users taken on the basis of these financial statements.</p>
+<p>As part of an audit in accordance with SAs, we exercise professional judgement and maintain professional scepticism throughout the audit. We also:</p>
+<ol><li>Identify and assess the risks of material misstatement of the financial statements, whether due to fraud or error, design and perform audit procedures responsive to those risks, and obtain audit evidence that is sufficient and appropriate to provide a basis for our opinion. The risk of not detecting a material misstatement resulting from fraud is higher than for one resulting from error, as fraud may involve collusion, forgery, intentional omissions, misrepresentations, or the override of internal control.</li>
+<li>Obtain an understanding of internal control relevant to the audit in order to design audit procedures that are appropriate in the circumstances.${ifc?" Under section 143(3)(i) of the Act, we are also responsible for expressing our opinion on whether the Company has adequate internal financial controls with reference to financial statements in place and the operating effectiveness of such controls.":''}</li>
+<li>Evaluate the appropriateness of accounting policies used and the reasonableness of accounting estimates and related disclosures made by management.</li>
+<li>Conclude on the appropriateness of management's use of the going concern basis of accounting and, based on the audit evidence obtained, whether a material uncertainty exists related to events or conditions that may cast significant doubt on ${who}'s ability to continue as a going concern. If we conclude that a material uncertainty exists, we are required to draw attention in our auditor's report to the related disclosures in the financial statements or, if such disclosures are inadequate, to modify our opinion. Our conclusions are based on the audit evidence obtained up to the date of our auditor's report. However, future events or conditions may cause ${who} to cease to continue as a going concern.</li>
+<li>Evaluate the overall presentation, structure and content of the financial statements, including the disclosures, and whether the financial statements represent the underlying transactions and events in a manner that achieves fair presentation.</li></ol>
+<p>We communicate with ${co?'those charged with governance':'management'} regarding, among other matters, the planned scope and timing of the audit and significant audit findings, including any significant deficiencies in internal control that we identify during our audit.</p>
+<div class="cap">Report on Other Legal and Regulatory Requirements</div>`;
+ if(co){
+  t+=`<p>1. ${caro?`As required by the Companies (Auditor's Report) Order, 2020 ("the Order") issued by the Central Government of India in terms of sub-section (11) of section 143 of the Act, we give in <b>${AL('CARO')}</b> a statement on the matters specified in paragraphs 3 and 4 of the Order, to the extent applicable.`:`The Companies (Auditor's Report) Order, 2020 ("the Order") issued by the Central Government of India in terms of sub-section (11) of section 143 of the Act is not applicable to the Company in terms of paragraph 1(2) of the Order. Accordingly, no statement on the matters specified in paragraphs 3 and 4 of the Order is given.`}</p>
+<p>2. As required by section 143(3) of the Act, we report that:</p>
+<ol type="a"><li>We have sought and obtained all the information and explanations which to the best of our knowledge and belief were necessary for the purposes of our audit.</li>
+<li>In our opinion, proper books of account as required by law have been kept by the Company so far as it appears from our examination of those books.</li>
+<li>The Balance Sheet, the Statement of Profit and Loss${cfs?' and the Statement of Cash Flows':''} dealt with by this Report are in agreement with the books of account.</li>
+<li>In our opinion, the aforesaid financial statements comply with the Accounting Standards specified under section 133 of the Act, read with Rule 7 of the Companies (Accounts) Rules, 2014.</li>
+<li>On the basis of the written representations received from the directors${ye?' as on '+ye:''} taken on record by the Board of Directors, none of the directors is disqualified${ye?' as on '+ye:''} from being appointed as a director in terms of section 164(2) of the Act.</li>
+<li>${ifc?`With respect to the adequacy of the internal financial controls with reference to financial statements of the Company and the operating effectiveness of such controls, refer to our separate Report in <b>${AL('IFC')}</b>.`:`The requirement of reporting on the adequacy of the internal financial controls with reference to financial statements and the operating effectiveness of such controls, under section 143(3)(i) of the Act, is not applicable to the Company in terms of the exemption granted by the Ministry of Corporate Affairs vide notification G.S.R. 583(E) dated 13 June 2017.`}</li>
+<li>${pub?`With respect to the matter to be included in the Auditor's Report under section 197(16) of the Act: in our opinion and to the best of our information and according to the explanations given to us, the remuneration paid by the Company to its directors during the year is in accordance with the provisions of section 197 of the Act. The remuneration paid to any director is not in excess of the limit laid down under section 197 of the Act. The Ministry of Corporate Affairs has not prescribed other details under section 197(16) which are required to be commented upon by us.`:`Section 197 of the Act is not applicable to the Company, being a private company; accordingly, reporting under section 197(16) of the Act is not applicable.`}</li>
+<li>With respect to the other matters to be included in the Auditor's Report in accordance with Rule 11 of the Companies (Audit and Auditors) Rules, 2014, in our opinion and to the best of our information and according to the explanations given to us:
+<ol type="i"><li>The Company has disclosed the impact, if any, of pending litigations on its financial position in its financial statements.</li>
+<li>The Company did not have any long-term contracts including derivative contracts for which there were any material foreseeable losses.</li>
+<li>There were no amounts which were required to be transferred to the Investor Education and Protection Fund by the Company.</li>
+<li>(a) The management has represented that, to the best of its knowledge and belief, other than as disclosed in the notes to the accounts, no funds have been advanced or loaned or invested (either from borrowed funds or share premium or any other sources or kind of funds) by the Company to or in any other person(s) or entity(ies), including foreign entities ("Intermediaries"), with the understanding, whether recorded in writing or otherwise, that the Intermediary shall, directly or indirectly lend or invest in other persons or entities identified in any manner whatsoever by or on behalf of the Company ("Ultimate Beneficiaries") or provide any guarantee, security or the like on behalf of the Ultimate Beneficiaries; (b) the management has represented that, to the best of its knowledge and belief, other than as disclosed in the notes to the accounts, no funds have been received by the Company from any person(s) or entity(ies), including foreign entities ("Funding Parties"), with the understanding, whether recorded in writing or otherwise, that the Company shall, directly or indirectly, lend or invest in other persons or entities identified in any manner whatsoever by or on behalf of the Funding Party ("Ultimate Beneficiaries") or provide any guarantee, security or the like on behalf of the Ultimate Beneficiaries; and (c) based on such audit procedures that have been considered reasonable and appropriate in the circumstances, nothing has come to our notice that has caused us to believe that the representations under sub-clauses (a) and (b) above contain any material misstatement.</li>
+<li>${$('audDiv').value==='ok'?'The dividend declared or paid during the year by the Company is in compliance with section 123 of the Act.':'The Company has not declared or paid any dividend during the year.'}</li>
+<li>${$('audTrail').value.trim()?esc($('audTrail').value.trim()):'Based on our examination which included test checks, the Company has used accounting software for maintaining its books of account which has a feature of recording audit trail (edit log) facility and the same has operated throughout the year for all relevant transactions recorded in the software. Further, during the course of our audit we did not come across any instance of the audit trail feature being tampered with. Additionally, the audit trail has been preserved by the Company as per the statutory requirements for record retention.'}</li></ol></li></ol>`;
+ }else{
+  t+=`<p>We report that:</p><ol type="a"><li>We have obtained all the information and explanations which to the best of our knowledge and belief were necessary for the purposes of our audit.</li>
+<li>In our opinion, proper books of account have been kept by ${who} so far as it appears from our examination of those books.</li>
+<li>The Balance Sheet and the Profit and Loss Account${cfs?' and the Cash Flow Statement':''} dealt with by this report are in agreement with the books of account.</li></ol>`;
+ }
+ const fm=pv('auditorFirm'),fr=pv('frn'),an=pv('auditorName'),mn=pv('membershipNo'),ud=pv('udin'),pl2=pv('place'),dt=g('reportDate')?fd(g('reportDate')):'';
+ const ft=[fm&&`For <b style="color:#1e3a8a">${fm}</b>`,(fm||fr)&&'Chartered Accountants',fr&&`Firm Registration No.: ${fr}`,(an||mn||ud)&&(fm||fr)&&'<br>',an,an&&(g('auditorDesig')||'Partner'),mn&&`Membership No.: ${mn}`,ud&&`UDIN: ${ud}`].filter(Boolean).join('<br>');
+ const pd=[pl2&&`Place: ${pl2}`,dt&&`Date: ${dt}`].filter(Boolean).join('<br>');
+ return t+((ft||pd)?`<div class="sig-block"><div class="sg"><div>${pd}</div><div>${ft}</div></div></div>`:'')+`</div>`;}
+function printHTML(){
+  const pages=['paneAud','paneBs','panePl','paneSchedules','paneNotes'].map(i=>$(i).innerHTML).join('');
+  const wrapped=pages.split('<div class="pg').filter(Boolean).map(p=>'<div class="pg'+p);
+  const tbls=wrapped.map(p=>'<table class="pw"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>'+p+'</td></tr></tbody></table>').join('');
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Prepare Balance Sheet, Profit and Loss, notes and Excel workbooks from Tally JSON data."><title> </title><style>'+PCSS+PRINTCSS+'</style></head><body class="paper">'+tbls+'</body></html>';
+}
+const PAGE_H=(297-24-3)*96/25.4;
+function fillOne(p,maxH){p.style.zoom=1;p.style.minHeight='';p.style.display='';p.style.flexDirection='';
+ const sbx=p.querySelector('.sig-block');if(sbx)sbx.style.marginTop='';
+ const cs0=[...p.querySelectorAll('table.fs tr')],win=p.ownerDocument.defaultView;
+ cs0.forEach(tr=>tr.querySelectorAll('td,th').forEach(c=>{c.style.paddingTop='';c.style.paddingBottom='';}));
+ let h=p.getBoundingClientRect().height;if(!h)return;
+ if(h>maxH){p.style.zoom=(maxH/h).toFixed(4);return;}
+ if(!cs0.length)return;
+ const per=Math.min((maxH-h-6)/cs0.length/2,7);
+ if(per>0.3)cs0.forEach(tr=>tr.querySelectorAll('td,th').forEach(c=>{const st=win.getComputedStyle(c);c.style.paddingTop=(parseFloat(st.paddingTop)+per)+'px';c.style.paddingBottom=(parseFloat(st.paddingBottom)+per)+'px';}));
+ h=p.getBoundingClientRect().height;if(h>maxH){p.style.zoom=(maxH/h).toFixed(4);return;}
+ p.style.display='flex';p.style.flexDirection='column';p.style.minHeight=maxH+'px';if(sbx)sbx.style.marginTop='auto';}
+function fitOnePage(doc){doc.querySelectorAll('.pg.one').forEach(p=>fillOne(p,PAGE_H));}
+function fitPreview(){document.querySelectorAll('.rp:not(.hidden) .pg.one').forEach(p=>fillOne(p,PAGE_H));}
+function printReport(){
+  const old=document.getElementById('printFrame');if(old)old.remove();
+  const iframe=document.createElement('iframe');iframe.id='printFrame';
+  iframe.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;';
+  document.body.appendChild(iframe);
+  const doc=iframe.contentWindow.document;doc.open();doc.write(printHTML());doc.close();
+  setTimeout(()=>{try{fitOnePage(doc);iframe.contentWindow.focus();iframe.contentWindow.print();}catch(e){alert('Print error: '+e.message);}},400);
+}
+$('btnPrint').onclick=printReport;
+$('incAudRep').addEventListener('change',()=>$('audOpts').classList.toggle('hidden',!$('incAudRep').checked));
+/* Entity type dropdown <-> setup entity cards sync */
+function audSyncUI(){const e=g('entityType'),co=e==='company',sel=$('audCoType');
+ if(e==='partnership'||e==='proprietorship'){sel.value=e;}else if(sel.value==='partnership'||sel.value==='proprietorship'){sel.value='private';}
+ document.querySelectorAll('#audOpts .co-only').forEach(d=>{d.style.opacity=co?'':'.45';d.querySelectorAll('select,textarea').forEach(x=>x.disabled=!co);});}
+$('audCoType').addEventListener('change',()=>{const v=g('audCoType'),want=(v==='partnership'||v==='proprietorship')?v:'company';
+ if(g('entityType')!==want){const c=document.querySelector('.ecd[data-entity="'+want+'"]');if(c)c.click();}
+ audSyncUI();});
+document.querySelectorAll('.ecd').forEach(c=>c.addEventListener('click',audSyncUI));
+audSyncUI();
+$('btnPdf').onclick=printReport;
+
+$('btnGenerate').onclick=()=>{if(!parsedTB.length&&!NOTALLY)return alert('Please upload the Trial Balance JSON first, or tick "Tally data is not available" to enter figures manually.');const m=NOTALLY?{}:collectMapping();
+ if(NOTALLY&&!Object.values(MANCY).some(v=>parseFloat(v)))return alert('Please enter at least one Current Year amount.');if(!NOTALLY&&!Object.keys(m).length)return alert('Please map the ledgers first.');
+ UNIT=parseInt(g('unit'))||1;try{REPORT=build(m);}finally{UNIT=1;}$('previewCard').classList.remove('hidden');$('paneBs').innerHTML=REPORT.bs;$('panePl').innerHTML=REPORT.pl;$('paneSchedules').innerHTML=REPORT.sch;$('paneNotes').innerHTML=REPORT.notes;
+ {const on=$('incAudRep').checked;$('paneAud').innerHTML=on?audRepHTML():'';$('tabAud').style.display=on?'':'none';
+  if(!on&&$('tabAud').classList.contains('active')){$('tabAud').classList.remove('active');document.querySelector('.tib[data-pane=paneBs]').classList.add('active');$('paneAud').classList.add('hidden');$('paneBs').classList.remove('hidden');}}
+ $('paneAll').innerHTML=['paneAud','paneBs','panePl','paneSchedules','paneNotes'].map(i=>$(i).innerHTML).join('');
+ fitPreview();
+ ['btnPdf','btnExcel','btnPrint'].forEach(i=>$(i).disabled=false);
+ const Lc=REPORT.model.tot.Lcy, Ac=REPORT.model.tot.Acy;
+ let msg=Math.abs(Lc-Ac)<1?'Report generated successfully. The Balance Sheet is balanced.':'Report generated, but the Balance Sheet is not balanced. Difference: '+fmt(Lc-Ac)+'.';
+ const bt=bsTotal();
+ if(bt&&Math.abs(Ac-bt)>=1)msg+=' Difference of '+fmt(r2(Ac-bt))+' against Tally BS total '+fmt(bt)+'.';
+ else if(bt)msg+=' Agrees with Tally BS total ('+fmt(bt)+').';
+ if($('incAudRep').checked){const mi=audMissing(),A=audAuto();msg+=' Independent Auditor\'s Report generated'+(mi.length?' — these setup fields were blank and are left out of the report: '+mi.join(', ')+'.':'.')+(g('entityType')==='company'&&$('audCoType').value==='listed'?' Key Audit Matters (SA 701) are not included — add them manually.':'');
+  if(g('entityType')==='company'&&A)msg+=' Auto checks on your figures — paid-up capital + reserves '+fmt(A.capRes)+', borrowings '+fmt(A.borrow)+', revenue '+fmt(A.rev)+': CARO 2020 '+(A.caroNA?'not applicable':'applicable')+', IFC reporting '+(A.ifcNA?'exempt':'required')+' (verify; override in the report options).'+((($('audCaro').value==='yes'||($('audCaro').value==='auto'&&!A.caroNA))||($('audIfc').value==='yes'||($('audIfc').value==='auto'&&!A.ifcNA)))?' The Annexures referred to are not generated.':'');
+  msg+=' Please review the report before issue.';}
+ $('genStatus').innerHTML=`<div class="al ${Math.abs(Lc-Ac)<1&&(!bt||Math.abs(Ac-bt)<1)?'as':'aw'}">${msg}</div>`;
+ $('previewCard').scrollIntoView({behavior:'smooth'});};
+document.querySelectorAll('.tib').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tib').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.querySelectorAll('.rp').forEach(p=>p.classList.add('hidden'));$(t.dataset.pane).classList.remove('hidden');fitPreview();});
+
+/* Self-expiring workbook: every cell becomes IF(Expired,"",value); sheets are NOT password protected.
+   Expired = TODAY() >= creation date + days. (Best-effort protection: a plain .xlsx cannot run code.) */
+async function applyExpiry(wb,days){
+ const d0=new Date(),serial=Math.round(Date.UTC(d0.getFullYear(),d0.getMonth(),d0.getDate())/86400000)+25569,exp=serial+days;
+ const V=wb.addWorksheet('Validity');
+ const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+ const wrapStr=t=>{if(t.length>7000)return null;const parts=[];for(let i=0;i<t.length;i+=240)parts.push(q(t.slice(i,i+240)));return parts.join('&');};
+ wb.worksheets.forEach(ws=>{if(ws===V)return;
+  ws.eachRow({includeEmpty:false},row=>row.eachCell({includeEmpty:false},cell=>{
+   if(cell.type===ExcelJS.ValueType.Merge)return;let v=cell.value,f=null,res=null;
+   if(typeof v==='number'&&isFinite(v)){f=String(v);res=v;}
+   else if(typeof v==='string'&&v!==''){const w=wrapStr(v);if(w){f=w;res=v;}}
+   else if(v&&typeof v==='object'&&typeof v.formula==='string'){f=v.formula;res=v.result;}
+   if(f!=null){cell.value={formula:'IF(Expired,"",'+f+')',result:res};}
+   }));
+  const cols=Math.max(ws.columnCount||1,26)+6,rows=Math.max(ws.rowCount||1,60)+60,col=n=>{let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;};
+  ws.addConditionalFormatting({ref:'A1:'+col(cols)+rows,rules:[{type:'expression',priority:1,formulae:['Expired'],style:{font:{color:{argb:'FFFFFFFF'}},fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FFFFFFFF'}}}}]});});
+ V.getColumn(1).width=34;V.getColumn(2).width=70;
+ const T=(r,a,b,o)=>{V.getCell(r,1).value=a;V.getCell(r,2).value=b;if(o&&o.b)V.getCell(r,1).font={bold:true};};
+ T(1,'REPORT VALIDITY',null,{b:1});V.getCell(1,1).font={bold:true,size:14,color:{argb:'FF1E3A8A'}};
+ T(3,'Generated on',{formula:'B8',result:serial});V.getCell(3,2).numFmt='dd-mmm-yyyy';V.getCell(3,2).alignment={horizontal:'left'};
+ T(4,'Valid for (days)',days);V.getCell(4,2).alignment={horizontal:'left'};
+ T(5,'Disabled from',{formula:'B8+B4',result:exp});V.getCell(5,2).numFmt='dd-mmm-yyyy';V.getCell(5,2).alignment={horizontal:'left'};
+ T(6,'Status',{formula:'IF(Expired,"EXPIRED - this workbook has been disabled. Please regenerate the report from Audit Report Generator.","ACTIVE - disables automatically in "&(B8+B4-TODAY())&" day(s).")',result:'ACTIVE - disables automatically in '+days+' day(s).'});
+ V.getCell(6,2).font={bold:true,color:{argb:'FFB91C1C'}};
+ T(8,'Creation date (do not edit)',serial);V.getCell(8,2).numFmt='dd-mmm-yyyy';V.getCell(8,2).alignment={horizontal:'left'};
+ T(9,'Expired?',{formula:'TODAY()>=B8+B4',result:false});
+ wb.definedNames.add("Validity!$B$9",'Expired');
+ wb.calcProperties={fullCalcOnLoad:true};
+}
+async function exportExcel(){
+ if(!REPORT){alert('Please generate the report first.');return;}
+ if(typeof ExcelJS==='undefined'){alert('The Excel library failed to load. Please check your internet connection and reload the page.');return;}
+ const M=REPORT.model,mode=g('pyMode'),NF=(REPORT.model.unit>1)?'#,##0;(#,##0);"-"':'#,##0.00;(#,##0.00);"-"',FN='Times New Roman';
+ const wb=new ExcelJS.Workbook();wb.creator='Audit Report Generator';wb.calcProperties={fullCalcOnLoad:true};
+ const pg=o=>({paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.5,right:.5,top:.6,bottom:.6,header:.3,footer:.3},...o});
+ const sB=wb.addWorksheet('BS_PL',{pageSetup:pg({fitToHeight:1})}),sN=wb.addWorksheet('Notes',{pageSetup:pg()}),
+  sF=(S.fa||[]).length?wb.addWorksheet('Fixed_Assets',{pageSetup:pg({orientation:'landscape'})}):null,sP=wb.addWorksheet('Policies',{pageSetup:pg()}),
+  sPt=(g('entityType')==='partnership'&&((S.partners||[]).length||SIGS.some(x=>x.name&&x.psr!=='')))?wb.addWorksheet('Partners',{pageSetup:pg()}):null,sT=wb.addWorksheet('TB_CY'),sTP=mode==='upload'?wb.addWorksheet('TB_PY'):null,sM=(mode==='manual'||mode==='open')?wb.addWorksheet('PY_Manual'):null,sH=wb.addWorksheet('Heads');
+ const st=(c,o)=>{o=o||{};const f={name:FN,size:Math.round((o.sz||11)*1.2),bold:!!o.b,italic:!!o.i};if(o.u)f.underline=true;if(o.col)f.color={argb:o.col};c.font=f;if(o.num)c.numFmt=NF;
+  c.alignment={horizontal:o.h||(o.ind?'left':undefined),vertical:'top',wrapText:!!o.w,indent:o.ind||0};
+  const b={};if(o.bt)b.top={style:'thin'};if(o.bb)b.bottom={style:o.bb===2?'double':'thin'};if(b.top||b.bottom)c.border=b;
+  if(o.fill)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:o.fill}};};
+ const U=M.unit||1,SCW=new Set([sB,sN,sF]),scl=(ws,v,o)=>{if(U<=1||!o||!o.num||o.raw||!SCW.has(ws))return v;if(v&&typeof v==='object'&&'formula' in v){const rup=/TB_|_Manual|SUMIF/.test(v.formula);return{formula:rup?`(${v.formula})/${U}`:v.formula,result:typeof v.result==='number'?v.result/U:v.result};}return typeof v==='number'?v/U:v;},
+  put=(ws,r,c,v,o)=>{const cell=ws.getCell(r,c);cell.value=scl(ws,v,o);st(cell,o);return cell;},FX=(f,res)=>({formula:f,result:res}),mg=(ws,r,c1,c2)=>ws.mergeCells(r,c1,r,c2);
+ const HF={b:1,fill:'FFEFF6FF',col:'FF1E3A8A',w:1,h:'center',bt:1,bb:1};
+ const ALLH=HEADS.bs.concat(HEADS.pl),HN=ALLH.length+1,HR='Heads!$A$2:$A$'+HN;
+ ['Head','Side','Type'].forEach((t,i)=>put(sH,1,i+1,t,HF));ALLH.forEach((h,i)=>{put(sH,i+2,1,h);put(sH,i+2,2,sd(h)==='cr'?'Cr':'Dr');put(sH,i+2,3,PLH.has(h)?'PL':'BS');});sH.getColumn(1).width=36;
+ ['Ledger','Op Dr','Op Cr','Cl Dr','Cl Cr','Head','CY Net','PY Net'].forEach((t,i)=>put(sT,1,i+1,t,HF));
+ sT.getColumn(1).width=48;[2,3,4,5,7,8].forEach(c=>sT.getColumn(c).width=16);sT.getColumn(6).width=40;sT.views=[{state:'frozen',ySplit:1}];
+ const rowOf={},tsum=[0,0,0,0,0,0];let tn=1;
+ document.querySelectorAll('#mappingBody select').forEach((s,i)=>{const r=parsedTB[+s.dataset.idx],rn=i+2,hd=s.value;rowOf[r.name]=rn;tn=rn;
+  put(sT,rn,1,r.name);[r.opDr,r.opCr,r.clDr,r.clCr].forEach((v,j)=>put(sT,rn,2+j,v,{num:1}));
+  const hc=put(sT,rn,6,hd||null);hc.dataValidation={type:'list',allowBlank:true,formulae:[HR]};
+  const pyN=(hd&&PLH.has(hd))?0:r2(r.opDr-r.opCr);put(sT,rn,7,FX(`D${rn}-E${rn}`,r2(r.clDr-r.clCr)),{num:1});
+  put(sT,rn,8,FX(`IF(IFERROR(VLOOKUP(F${rn},Heads!$A$2:$C$${HN},3,FALSE),"BS")="PL",0,B${rn}-C${rn})`,pyN),{num:1});
+  [r.opDr,r.opCr,r.clDr,r.clCr,r.clDr-r.clCr,pyN].forEach((v,j)=>tsum[j]+=v);});
+ if(tn>1){const t=tn+2,L6=['B','C','D','E','G','H'],C6=[2,3,4,5,7,8];put(sT,t,1,'Total',{b:1,bt:1,bb:2});L6.forEach((L,j)=>put(sT,t,C6[j],FX(`SUM(${L}2:${L}${tn})`,r2(tsum[j])),{b:1,num:1,bt:1,bb:2}));}
+ const pyRowOf={};
+ if(sTP){['Ledger','Op Dr','Op Cr','Cl Dr','Cl Cr','Head','PY Net'].forEach((t,i)=>put(sTP,1,i+1,t,HF));sTP.getColumn(1).width=48;[2,3,4,5,7].forEach(c=>sTP.getColumn(c).width=16);sTP.getColumn(6).width=40;sTP.views=[{state:'frozen',ySplit:1}];
+  document.querySelectorAll('#pyMappingBody select').forEach((s,i)=>{const r=PYTBX[+s.dataset.idx],rn=i+2;pyRowOf[r.name]=rn;
+   put(sTP,rn,1,r.name);[r.opDr,r.opCr,r.clDr,r.clCr].forEach((v,j)=>put(sTP,rn,2+j,v,{num:1}));
+   const hc=put(sTP,rn,6,s.value||null);hc.dataValidation={type:'list',allowBlank:true,formulae:[HR]};put(sTP,rn,7,FX(`D${rn}-E${rn}`,r2(r.clDr-r.clCr)),{num:1});});}
+ const manRow={};
+ const manRowL=new Map(),hasL=h=>(MANL[h]||[]).some(e=>e.name&&parseFloat(e.amt));
+ if(sM){['Head','Side','PY Amount'].forEach((t,i)=>put(sM,1,i+1,t,HF));sM.getColumn(1).width=40;sM.getColumn(3).width=24;
+  ALLH.forEach((h,i)=>{manRow[h]=i+2;put(sM,i+2,1,h);put(sM,i+2,2,sd(h)==='cr'?'Cr':'Dr');
+   put(sM,i+2,3,hasL(h)?FX(`SUMIF($E$2:$E$500,A${i+2},$G$2:$G$500)`,parseFloat(MAN[h])||0):(parseFloat(MAN[h])||0),{num:1,col:'FF0000FF'});});
+  ['Head','Ledger','PY Amount','CY Amount'].forEach((t,i)=>put(sM,1,5+i,t,HF));sM.getColumn(5).width=36;sM.getColumn(6).width=48;sM.getColumn(7).width=20;sM.getColumn(8).width=20;
+  {let lr=2;Object.keys(MANL).forEach(h=>MANL[h].forEach(e=>{if(!e.name)return;manRowL.set(e,lr);put(sM,lr,5,h);put(sM,lr,6,e.name.replace(/ ->.*$/,''));put(sM,lr,7,parseFloat(e.amt)||0,{num:1,col:'FF0000FF'});put(sM,lr,8,parseFloat(e.cy)||0,{num:1,col:'FF0000FF'});lr++;}));}}
+ const cmRow={};
+ if(NOTALLY){const sCM=wb.addWorksheet('CY_Manual');['Head','Side','CY Amount'].forEach((t,i)=>put(sCM,1,i+1,t,HF));sCM.getColumn(1).width=40;sCM.getColumn(3).width=24;
+  ALLH.forEach((h,i)=>{cmRow[h]=i+2;put(sCM,i+2,1,h);put(sCM,i+2,2,sd(h)==='cr'?'Cr':'Dr');{const v=parseFloat(MANCY[h])||0;put(sCM,i+2,3,(MANL[h]||[]).some(e=>e.name&&parseFloat(e.cy))?FX(`SUMIF(PY_Manual!$E$2:$E$500,A${i+2},PY_Manual!$H$2:$H$500)`,v):v,{num:1,col:'FF0000FF'});}});}
+ const raw=(h,col)=>col==='cy'?`SUMIF(TB_CY!$F:$F,"${h}",TB_CY!$G:$G)`:mode==='upload'?`SUMIF(TB_PY!$F:$F,"${h}",TB_PY!$G:$G)`:`SUMIF(TB_CY!$F:$F,"${h}",TB_CY!$H:$H)`;
+ const termF=(hs,col)=>{if(col==='cy'&&NOTALLY)return hs.map(h=>`CY_Manual!$C$${cmRow[h]}`).join('+');if(col==='py'&&(mode==='manual'||(mode==='open'&&PLH.has(hs[0]))))return hs.map(h=>`PY_Manual!$C$${manRow[h]}`).join('+');const inner=hs.map(h=>raw(h,col)).join('+');return sd(hs[0])==='cr'?`-(${inner})`:inner;};
+ const X=h=>M.L[h]||M.A[h]||M.P[h],resF=(hs,col)=>r2(hs.reduce((a,h)=>a+X(h)[col],0));
+ sN.getColumn(1).width=62;sN.getColumn(2).width=20;sN.getColumn(3).width=20;sN.getColumn(4).width=20;sN.getColumn(5).width=20;[6,7,8,9].forEach(i=>sN.getColumn(i).width=20);
+ const writeSC=(sc,r)=>{const hd=(t,i,o)=>put(sN,r,i,t,{b:1,bt:1,bb:1,h:i>1?'right':'left',fill:'FFEFF6FF',col:'FF1E3A8A',...(o||{})});
+  if(sc.rows.length){r++;hd('Particulars',1);hd('As at 31 March '+M.yr,2);hd('As at 31 March '+M.yp,3);r++;
+   sc.rows.forEach(x=>{put(sN,r,1,x.l,{ind:x.ind||0,b:x.b,i:x.memo,bt:x.top});put(sN,r,2,x.cy,{num:1,b:x.b,i:x.memo,bt:x.top});put(sN,r,3,x.py,{num:1,b:x.b,i:x.memo,bt:x.top});r++;});}
+  if(sc.rec.length){r++;hd('Reconciliation of Share Capital - Equity Shares',1);hd('No. of Shares '+M.yr,2);hd('Amount '+M.yr,3);hd('No. of Shares '+M.yp,4);hd('Amount '+M.yp,5);r++;
+   sc.rec.forEach(x=>{const o={b:x[5]};put(sN,r,1,x[0],o);for(let i=1;i<=4;i++)put(sN,r,i+1,x[i],{...o,num:1,raw:(i===1||i===3)});r++;});}
+  r++;sc.ds.forEach(d=>{put(sN,r,1,d[0]+': '+(d[1]||'Nil'),{w:1});mg(sN,r,1,3);sN.getRow(r).height=d[0].length>110?55:38;r++;});
+  return r;};
+ put(sN,1,1,M.client.toUpperCase(),{b:1,sz:14,h:'center',col:'FF1E3A8A'});mg(sN,1,1,3);put(sN,2,1,'NOTES TO ACCOUNTS — forming part of the Financial Statements',{b:1,u:1,h:'center',col:'FF1E3A8A'});mg(sN,2,1,3);
+ let nr=4;const NR={};
+ M.noteDefs.forEach(nd=>{
+  put(sN,nr,1,`Note ${M.NN[nd.k]}: ${nd.title}`,{b:1,sz:12,col:'FF1E3A8A'});nr++;
+  ['Particulars','As at 31 March '+M.yr,'As at 31 March '+M.yp].forEach((t,i)=>put(sN,nr,i+1,t,{b:1,bt:1,bb:1,h:i?'right':'left',fill:'FFEFF6FF',col:'FF1E3A8A'}));nr++;
+  const sgn=nd.side==='cr'?'-':'';
+  const ml=(mode==='manual'&&!NOTALLY)||(mode==='open'&&nd.pl)?nd.hs.flatMap(h=>MANL[h]||[]):[],mUse=ml.some(e=>parseFloat(e.amt));
+  nd.led.forEach(x=>{const cy=r2(nd.side==='dr'?x.dr-x.cr:x.cr-x.dr);let py=0,pf=null;
+   if(mode==='upload'){py=r2(nd.side==='dr'?(x.pd||0)-(x.pc||0):(x.pc||0)-(x.pd||0));if(x.py&&pyRowOf[x.name])pf=`${sgn}TB_PY!G${pyRowOf[x.name]}`;}
+   else if(mode==='open'&&!nd.pl){py=r2(nd.side==='dr'?x.od-x.oc:x.oc-x.od);if(rowOf[x.name])pf=`${sgn}TB_CY!H${rowOf[x.name]}`;}
+   else if(mUse){const e=ml.find(q=>!q.extra&&q.name===x.name);if(e&&manRowL.has(e)){py=r2(parseFloat(e.amt)||0);pf=`PY_Manual!G${manRowL.get(e)}`;}}
+   if(Math.abs(cy)<0.005&&Math.abs(py)<0.005)return;
+   put(sN,nr,1,x.name.replace(/ ->.*$/,''),{ind:1});
+   put(sN,nr,2,(rowOf[x.name]&&(x.dr||x.cr))?FX(`${sgn}TB_CY!G${rowOf[x.name]}`,cy):cy,{num:1});put(sN,nr,3,pf?FX(pf,py):py,{num:1});nr++;});
+  if(NOTALLY)nd.hs.flatMap(h=>MANL[h]||[]).filter(e=>e.name&&(parseFloat(e.cy)||parseFloat(e.amt))).forEach(e=>{const rr=manRowL.get(e);put(sN,nr,1,e.name,{ind:1});put(sN,nr,2,FX(`PY_Manual!H${rr}`,r2(parseFloat(e.cy)||0)),{num:1});put(sN,nr,3,FX(`PY_Manual!G${rr}`,r2(parseFloat(e.amt)||0)),{num:1});nr++;});
+  if(mUse)ml.filter(e=>e.extra&&e.name&&parseFloat(e.amt)).forEach(e=>{put(sN,nr,1,e.name,{ind:1});put(sN,nr,2,0,{num:1});put(sN,nr,3,FX(`PY_Manual!G${manRowL.get(e)}`,r2(parseFloat(e.amt))),{num:1});nr++;});
+  const so={b:1,num:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'};put(sN,nr,1,'Total',{b:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'});
+  put(sN,nr,2,FX(termF(nd.hs,'cy'),resF(nd.hs,'cy')),so);put(sN,nr,3,FX(termF(nd.hs,'py'),resF(nd.hs,'py')),so);NR[nd.k]=nr;nr++;
+  if(nd.k==='Share Capital'&&M.sc)nr=writeSC(M.sc,nr);
+  if(nd.k==='Reserves & Surplus'&&M.res){const R=M.res,hd=(t,i)=>put(sN,nr,i,t,{b:1,bt:1,bb:1,w:1,h:i>1?'center':'left',fill:'FFEFF6FF',col:'FF1E3A8A'}),F=['o1','a1','d1','c1','o2','a2','d2','c2'];
+   const block=(title,rows,tt)=>{nr++;put(sN,nr,1,title,{b:1,u:1});nr++;hd('Particulars',1);for(let i=0;i<8;i++)hd((i<4?'31 Mar '+R.head[0]:'31 Mar '+R.head[1])+' - '+['Opening','Addition','Deduction','Closing'][i%4],i+2);nr++;
+    const r0=nr;rows.forEach(x=>{put(sN,nr,1,x.name);F.forEach((f,i)=>put(sN,nr,i+2,x[f],{num:1}));nr++;});
+    put(sN,nr,1,'Total',{b:1,bt:1,bb:1});F.forEach((f,i)=>{const L=String.fromCharCode(66+i);put(sN,nr,i+2,FX(`SUM(${L}${r0}:${L}${nr-1})`,tt[f]),{b:1,num:1,bt:1,bb:1});});nr++;};
+   if(R.rr.length)block('Reserves',R.rr,R.tot.r);block('Surplus',R.sur,R.tot.s);nr++;put(sN,nr,1,'TOTAL RESERVES AND SURPLUS',{b:1,bt:1,bb:2});put(sN,nr,5,R.totC,{b:1,num:1,bt:1,bb:2});put(sN,nr,9,R.totP,{b:1,num:1,bt:1,bb:2});nr++;}
+  if(nd.k==='Share Capital'&&M.cap){const C=M.cap,off=C.isP?3:2,CL=j=>String.fromCharCode(64+off+j),hd=(t,i)=>put(sN,nr,i,t,{b:1,bt:1,bb:1,w:1,h:i>1?'right':'left',fill:'FFEFF6FF',col:'FF1E3A8A'}),n=C.cols.length;
+   nr++;hd(C.isP?'Name of Partner':'Name of Proprietor',1);if(C.isP)hd('Share (%)',2);C.cols.forEach((c,j)=>hd(c[1],off+j));nr++;
+   const cf=r=>C.isP?`${CL(0)}${r}+${CL(1)}${r}+${CL(2)}${r}+${CL(3)}${r}-${CL(4)}${r}+${CL(5)}${r}`:`${CL(0)}${r}+${CL(1)}${r}-${CL(2)}${r}+${CL(3)}${r}`,r0=nr;
+   C.rows.forEach(o=>{put(sN,nr,1,o.name);if(C.isP)put(sN,nr,2,o.sh==null?'-':r2(o.sh)+'',{h:'right'});C.cols.forEach((c,j)=>{put(sN,nr,off+j,c[0]==='close'?FX(cf(nr),o.close):o[c[0]],{num:1});});nr++;});
+   const so={b:1,bt:1,bb:1};put(sN,nr,1,'Current Year',so);if(C.isP)put(sN,nr,2,'',so);C.cols.forEach((c,j)=>put(sN,nr,off+j,FX(`SUM(${CL(j)}${r0}:${CL(j)}${nr-1})`,C.cy[c[0]]),{...so,num:1}));nr++;
+   put(sN,nr,1,'Previous Year',so);if(C.isP)put(sN,nr,2,'',so);C.cols.forEach((c,j)=>put(sN,nr,off+j,c[0]==='close'?FX(cf(nr),C.py.close):C.py[c[0]],{...so,num:1}));nr++;}
+  nr++;});
+ if(sF){const H=['Name of Asset','Opening WDV (Gross)','(+) Addition','(-) Deduction','(-) Depreciation','(=) Gross Block'];H.forEach((t,i)=>{put(sF,1,i+1,t,HF);sF.getColumn(i+1).width=i?22:40;});sF.getRow(1).height=38;
+  let rn=2;S.fa.forEach(x=>{const v=f=>parseFloat(x[f])||0,cG=v('opG')+v('add')-v('ded')-v('dep');
+   put(sF,rn,1,x.name||'');put(sF,rn,2,v('opG'),{num:1});put(sF,rn,3,v('add'),{num:1});put(sF,rn,4,v('ded'),{num:1});put(sF,rn,5,v('dep'),{num:1});put(sF,rn,6,FX(`B${rn}+C${rn}-D${rn}-E${rn}`,cG),{num:1});rn++;});
+  {const last=rn-1,sm=f=>S.fa.reduce((a,x)=>a+(parseFloat(x[f])||0),0),T=['opG','add','ded','dep'].map(sm);T.push(T[0]+T[1]-T[2]-T[3]);
+   const so={b:1,num:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'};put(sF,rn,1,'Total',{b:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'});
+   ['B','C','D','E','F'].forEach((L,i)=>put(sF,rn,2+i,FX(`SUM(${L}2:${L}${last})`,r2(T[i])),so));}}
+ if(sPt){['Partner','Capital','PSR % (Profit Sharing Ratio)'].forEach((t,i)=>{put(sPt,1,i+1,t,HF);sPt.getColumn(i+1).width=i?26:40;});
+  const names=[...(S.partners||[]).map(x=>({n:x.name||'',a:parseFloat(x.amount)||0}))];SIGS.forEach(x=>{if(x.name&&!names.some(y=>norm(y.n)===norm(x.name)))names.push({n:x.name,a:0});});
+  names.forEach((x,i)=>{put(sPt,i+2,1,x.n);put(sPt,i+2,2,x.a,{num:1});const v=psrOf(x.n);put(sPt,i+2,3,v===null?'':v);});
+  const last=names.length+1,so={b:1,num:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'};put(sPt,last+1,1,'Total',{b:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'});put(sPt,last+1,2,FX(`SUM(B2:B${last})`,r2(names.reduce((a,x)=>a+x.a,0))),so);put(sPt,last+1,3,FX(`SUM(C2:C${last})`,r2(names.reduce((a,x)=>a+(psrOf(x.n)||0),0))),{b:1,bt:1,bb:2,fill:'FFEFF6FF',col:'FF1E3A8A'});}
+ sP.getColumn(1).width=110;put(sP,1,1,'SIGNIFICANT ACCOUNTING POLICIES',{b:1,u:1,h:'center',col:'FF1E3A8A'});
+ (S.policies||'').trim().split('\n').forEach((t,i)=>put(sP,i+3,1,t,{w:1}));
+ if(!(S.policies||'').trim())wb.removeWorksheet(sP.id);
+ [64,10,20,20].forEach((w,i)=>sB.getColumn(i+1).width=w);sB.getColumn(6).width=62;sB.getColumn(7).width=16;
+ let r=1;put(sB,r,1,M.client.toUpperCase(),{b:1,sz:14,h:'center',col:'FF1E3A8A'});mg(sB,r,1,4);r++;
+ r++;
+ const ttl=(t,sb)=>{put(sB,r,1,t,{b:1,u:1,h:'center',col:'FF1E3A8A'});mg(sB,r,1,4);r++;put(sB,r,1,sb,{b:1,h:'center'});mg(sB,r,1,4);r++;put(sB,r,1,'(Amount in ₹'+unitTxt(U)+')',{i:1,h:'right',sz:10});mg(sB,r,1,4);r++;};
+ const hdr=(a,b)=>{['Particulars','Note No.',a,b].forEach((t,i)=>put(sB,r,i+1,t,{b:1,bt:1,bb:1,w:1,h:i===0?'left':i===1?'center':'right',fill:'FFEFF6FF',col:'FF1E3A8A'}));sB.getRow(r).height=38;r++;};
+ const lineRow=(label,hs,ind,noteHead,o)=>{o=o||{};const nk=noteHead&&M.NN[M.tk(noteHead)]?M.tk(noteHead):'',nrw=nk?NR[nk]:0;
+  const bd=o.b||!ind;put(sB,r,1,label,{ind:(ind||0)*2,b:bd});put(sB,r,2,nk?M.NN[nk]:null,{h:'center',b:1});
+  put(sB,r,3,FX(nrw?`Notes!B${nrw}`:termF(hs,'cy'),resF(hs,'cy')),{num:1,b:bd});put(sB,r,4,FX(nrw?`Notes!C${nrw}`:termF(hs,'py'),resF(hs,'py')),{num:1,b:bd});r++;return r-1;};
+ const totRow=(label,fc,fp,rc,rp,o)=>{o=o||{bb:2};const styled={b:1,num:1,bt:1,bb:o.bb,fill:'FFEFF6FF',col:'FF1E3A8A'};
+  put(sB,r,1,label,{b:1,bt:1,bb:o.bb,fill:'FFEFF6FF',col:'FF1E3A8A'});put(sB,r,2,null,{bt:1,bb:o.bb,fill:'FFEFF6FF'});
+  put(sB,r,3,FX(fc,rc),styled);put(sB,r,4,FX(fp,rp),styled);r++;return r-1;};
+ ttl('BALANCE SHEET','as at 31 March '+M.yr);hdr('As at 31 March '+M.yr,'As at 31 March '+M.yp);
+ const LR={L:[],A:[]},TR={};
+ M.spec.forEach(it=>{
+  if(it.t==='s'){put(sB,r,1,it.l,{b:1,col:'FF1E3A8A'});if(!it.vis)sB.getRow(r).hidden=true;r++;}
+  else if(it.t==='t'){const rows=LR[it.g];TR[it.g]=totRow(it.l,rows.map(x=>'C'+x).join('+'),rows.map(x=>'D'+x).join('+'),it.g==='L'?M.tot.Lcy:M.tot.Acy,it.g==='L'?M.tot.Lpy:M.tot.Apy);}
+  else{const rr=lineRow(it.l,it.hs,it.ind,it.note);if(!it.sub)LR[it.g].push(rr);if(!it.vis)sB.getRow(rr).hidden=true;}});
+ r++;ttl(M.ent==='company'?'STATEMENT OF PROFIT AND LOSS':'PROFIT AND LOSS ACCOUNT','for the year ended 31 March '+M.yr);hdr('For the year ended 31 March '+M.yr,'For the year ended 31 March '+M.yp);
+ const hz=(rr,hs)=>{if(Math.abs(resF(hs,'cy'))<0.005&&Math.abs(resF(hs,'py'))<0.005)sB.getRow(rr).hidden=true;return rr;};
+ const rv=hz(lineRow('I. Revenue from Operations',['Revenue from Operations'],0,'Revenue from Operations'),['Revenue from Operations']),oi=hz(lineRow('II. Other Income',['Other Income'],0,'Other Income'),['Other Income']);
+ const ti=totRow('III. Total Income (I + II)',`C${rv}+C${oi}`,`D${rv}+D${oi}`,M.tot.Icy,M.tot.Ipy,{bb:0});
+ put(sB,r,1,'IV. Expenses',{b:1,col:'FF1E3A8A'});r++;const er={};M.exp.forEach(h=>{er[h]=hz(lineRow(h,[h],1,h),[h]);});
+ const pos=M.exp.filter(h=>h!=='Less: Closing Stock'),cs=er['Less: Closing Stock'];
+ const te=totRow('Total Expenses',`(${pos.map(h=>'C'+er[h]).join('+')})-C${cs}`,`(${pos.map(h=>'D'+er[h]).join('+')})-D${cs}`,M.tot.Ecy,M.tot.Epy,{bb:0});
+ const pb=lineRow('V. Profit / (Loss) before tax (III - IV)',[],0,'');sB.getCell(pb,3).value=FX(`C${ti}-C${te}`,M.tot.pbt/U);sB.getCell(pb,4).value=FX(`D${ti}-D${te}`,M.tot.pbtP/U);
+ totRow('VI. Profit / (Loss) for the year',`C${pb}`,`D${pb}`,M.tot.pbt,M.tot.pbtP);
+ sB.pageSetup.printArea='A1:D'+(r-1);
+ let cr=1;const ck=(label,f,res)=>{put(sB,cr,6,label,{i:1,sz:10,col:'FF64748B'});put(sB,cr,7,FX(f,res),{b:1,num:1,sz:10});cr++;};
+ put(sB,cr,6,'CHECKS (outside print area) — all values should be zero',{b:1,sz:10});cr++;
+ ck('Balance Sheet: Liabilities − Assets (CY)',`C${TR.L}-C${TR.A}`,r2(M.tot.Lcy-M.tot.Acy));
+ wb.worksheets.forEach(ws=>(ws.columns||[]).forEach(c=>{if(c&&c.width)c.width=Math.round(c.width*1.2);}));
+ const xd=Math.max(0,parseInt($('xlDays').value)||0);if(xd>0)await applyExpiry(wb,xd);
+ const buf=await wb.xlsx.writeBuffer(),blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download=(g('clientName')||'Client')+'_Audit_Report.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
+
+/* ---- Password lock on Excel export ---- */
+const XL_HASH='0b824a832e5e67481a805316b78456b6213de904824ad6aa81cdb36e2f8bc9de';
+async function xlPassOK(v){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')===XL_HASH;}catch(e){return v==='12346*';}}
+function askExcelPassword(){return new Promise(res=>{
+ const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:inherit';
+ ov.innerHTML='<div style="background:#fff;border-radius:10px;padding:20px 22px;width:320px;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.3)"><div style="font-weight:700;font-size:15px;color:#1e3a8a;margin-bottom:4px">&#128274; Excel export locked</div><div style="font-size:12px;color:#475569;margin-bottom:10px">Enter password to download the Excel file.</div><input type="password" id="xlPw" autocomplete="off" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px"><div id="xlErr" style="color:#dc2626;font-size:12px;height:16px;margin:6px 0"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn bg" id="xlCancel">Cancel</button><button type="button" class="btn bp" id="xlOk">Unlock &amp; Download</button></div></div>';
+ document.body.appendChild(ov);const inp=ov.querySelector('#xlPw'),err=ov.querySelector('#xlErr');inp.focus();
+ const done=v=>{ov.remove();res(v);};
+ const tryIt=async()=>{if(await xlPassOK(inp.value))done(true);else{err.textContent='Wrong password. Try again.';inp.value='';inp.focus();}};
+ ov.querySelector('#xlOk').onclick=tryIt;ov.querySelector('#xlCancel').onclick=()=>done(false);
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter')tryIt();else if(e.key==='Escape')done(false);});});}
+$('btnExcel').onclick=async()=>{if(await askExcelPassword())exportExcel();};
+$('reportDate').valueAsDate=new Date();document.querySelector('.ecd[data-entity="company"]').click();renderManual();
+
+(function(){
+ const ST=[['Setup',['entityCard','clientCard','sigCard']],['Previous Year',['pyCard']],['Ledger Mapping',['mappingCard']],['Schedules',['schedulesCard']],['Generate & Preview',['generateCard','previewCard']]];
+ let cur=0;
+ const ok=i=>{if(i<=1)return true;if(i===2)return parsedTB.length>0&&!NOTALLY&&!$('mappingCard').classList.contains('hidden');return !$('schedulesCard').classList.contains('hidden');};
+ const nav=$('stepNav');nav.innerHTML=ST.map((s,i)=>`<button type="button" data-st="${i}"><b>${i+1}</b>${s[0]}</button>`).join('');
+ ST.forEach((s,i)=>{const last=$(s[1][s[1].length-1]);const f=document.createElement('div');f.className='stepfoot';f.dataset.sf=i;
+  f.innerHTML=(i?'<button class="btn bg" type="button" data-go="-1">← Back</button>':'<span></span>')+(i<ST.length-1?'<button class="btn bp" type="button" data-go="1">Next →</button>':'<span></span>');
+  last.insertAdjacentElement('afterend',f);});
+ function show(){ST.forEach((s,i)=>{s[1].forEach(id=>$(id).classList.toggle('stp-off',i!==cur));});
+  document.querySelectorAll('.stepfoot').forEach(f=>f.classList.toggle('stp-off',+f.dataset.sf!==cur));
+  nav.querySelectorAll('button').forEach((b,i)=>{b.classList.toggle('on',i===cur);b.disabled=!ok(i);});
+  document.querySelectorAll('.stepfoot [data-go="1"]').forEach(b=>{let n=cur+1;while(n<ST.length&&!ok(n))n++;b.disabled=n>=ST.length;});}
+ function go(i){cur=i;show();window.scrollTo({top:0,behavior:'smooth'});}
+ nav.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.disabled)go(+b.dataset.st);});
+ document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b||b.disabled)return;let n=cur+(+b.dataset.go);while(n>0&&n<ST.length-1&&!ok(n))n+=(+b.dataset.go);if(n>=0&&n<ST.length&&ok(n))go(n);});
+ const mo=new MutationObserver(show);['mappingCard','schedulesCard','generateCard'].forEach(id=>mo.observe($(id),{attributes:true,attributeFilter:['class']}));
+ $('btnGenerate').addEventListener('click',()=>setTimeout(()=>{if(cur!==4)go(4);},0));
+ window.wizGo=go;show();
+})();
+</script></body></html>
